@@ -1,0 +1,90 @@
+body {
+  height: 100vh;
+}
+
+header {
+  top: 0px;
+  width: 100%;
+  left: 0px;
+  position: fixed;
+  align-items: center;
+  text-align: center;
+  height: 92px;
+  background-color: rgb(100, 100, 250);
+
+  z-index: 1000;
+}
+
+.layout {
+  height: 100vh;
+}
+
+nav {
+  margin-top: 85px;
+  position: fixed;
+  display: grid;
+  grid-template-rows: repeat(5, 1fr);
+  background-color: rgb(170, 247, 221);
+  width: 200px;
+  height: calc(100% - 85px);
+  left: 0px;
+}
+
+nav button {
+  width: 100%;
+  height: auto;
+  text-align: center;
+}
+
+main {
+  padding-top: 87px;
+  margin-left: 194px;
+  width: 100%;
+  background-color: rgb(243, 245, 114);
+  height: 100%;
+}
+
+.button-container {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr 1fr 1fr;
+  column-gap: 20px;
+  row-gap: 30px;
+}
+
+.button-container {
+  display: inline-block;
+}
+
+.form-popup {
+  display: none;
+  position: fixed;
+  bottom: 30%;
+  right: 30%;
+  border: 3px solid #f1f1f1;
+  z-index: 9;
+  background-color: white;
+  padding: 20px;
+  box-shadow: 0px 0px 10px #aaa;
+  border-radius: 10px;
+} 
+
+form input, form select, form textarea {
+  margin-bottom: 30px;
+}
+
+/* form buttons */
+.btn {
+  display: inline-block;
+  margin-right: 20px;
+}
+
+.book-grid {
+  display: grid;
+  grid-template-columns: repeat(4 , 1fr);
+  column-gap: 20px;
+  row-gap: 30px;
+}
+
+.hide {
+  display: none;
+}
