@@ -24,7 +24,7 @@ cur.execute("CREATE TABLE IF NOT EXISTS Book(" \
 "Genre VARCHAR," \
 "Entry_date DATETIME DEFAULT CURRENT_TIMESTAMP," \
 "Cover BLOB," \
-"FOREIGN KEY(Genre) REFERENCES Genre(Id))")
+"FOREIGN KEY(Genre) REFERENCES Genre(Id) ON DELETE CASCADE)")
 
 # table category
 cur.execute("CREATE TABLE IF NOT EXISTS Category(" \
@@ -41,7 +41,7 @@ cur.execute("CREATE TABLE IF NOT EXISTS User(" \
 "Category VARCHAR(50)," \
 "Name VARCHAR(50) NOT NULL," \
 "Gender VARCHAR(50)," \
-"FOREIGN KEY(Category) REFERENCES Category(Id))") 
+"FOREIGN KEY(Category) REFERENCES Category(Id) ON DELETE CASCADE)") 
 
 # service table
 cur.execute("CREATE TABLE IF NOT EXISTS Service(" \
@@ -51,8 +51,8 @@ cur.execute("CREATE TABLE IF NOT EXISTS Service(" \
 "Estimated_return_time DATETIME," \
 "Return_time DATETIME," \
 "Comment TEXT," \
-"FOREIGN KEY(Book) REFERENCES Book(Id)," \
-"FOREIGN KEY(User) REFERENCES User(Id))")
+"FOREIGN KEY(Book) REFERENCES Book(Id) ON DELETE CASCADE," \
+"FOREIGN KEY(User) REFERENCES User(Id) ON DELETE CASCADE)")
 
 connection.commit()
 connection.close()
@@ -63,6 +63,7 @@ class Tables:
   def __init__(self, table_name):
     self.table = table_name
     self.connection = sqlite3.connect("libman-db.db")
+    self.connection.execute("PRAGMA foreign_keys = ON")
     self.cur = self.connection.cursor()
 
   def create(self,**kwargs):
@@ -104,13 +105,12 @@ class Tables:
     where_clause = " AND ".join(f'{k}= ?' for k in where)
     values = tuple(new_values.values()) + tuple(where.values())
     self.cur.execute(f"UPDATE {self.table} SET {set_clause} WHERE {where_clause}", values)
-    print(f"UPDATE {self.table} SET {set_clause} WHERE {where_clause}", values)
     self.connection.commit()
 
   def delete(self, **kwargs):
-    ref = "AND ".join(f'{k}= ?' for k in kwargs.items())
+    ref = " AND ".join(f'{k}= ?' for k in kwargs)
     values = tuple(kwargs.values())
-    self.cur.execute(f"DELETE FROM {self.table} WHERE {ref} VALUES ", values)
+    self.cur.execute(f"DELETE FROM {self.table} WHERE {ref}", values)
     self.connection.commit()
 
   def close(self):

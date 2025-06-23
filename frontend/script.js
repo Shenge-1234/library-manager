@@ -1,3 +1,9 @@
+function areIdentical(arr1, arr2){
+  // checks whether arrays are identical
+  if (arr1.length == arr2.length){
+    return(arr1.every((value, index) => value === arr2[index]))
+  };
+};
 
 window.onload = async() => {
   currentStatus();  
@@ -1121,6 +1127,15 @@ async function allUser() {
     const deleteBtn = document.createElement('button');
     deleteBtn.textContent = 'Delete';
     deleteBtn.className = 'last-cell-btn';
+
+    deleteBtn.onclick = async function(params) {
+      let cellEl = rowEl.querySelectorAll('td');
+      const cellElData = Array.from(cellEl).map(cl => cl.innerText);
+      if (areIdentical(cellElData, row)){
+        const dlted = await eel.delete_user(row)();
+        allUser();
+      };
+    };
     
     const editBtn = document.createElement('button');
     editBtn.textContent = 'Edit';
@@ -1191,7 +1206,6 @@ async function allUser() {
         });
 
         beforeEdit['Gender'] = currentRowData[2];
-
         const update = await eel.edit_user(beforeEdit, edited)();
         allUser();
       };
@@ -1230,7 +1244,6 @@ async function allUser() {
     const searchInput = e.target.value.toLowerCase();
     searchData.forEach(data =>{
       const lowerRowData = data.userDetails.map(stf => stf.toLowerCase());
-      console.log(lowerRowData)
       const isVisible = lowerRowData.some(stf => stf.includes(searchInput));
       data.element.classList.toggle('hide', ! isVisible);
     });
