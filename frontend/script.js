@@ -1098,7 +1098,7 @@ async function allUser() {
   const tableElement = document.createElement('table');
   const tableHeader = document.createElement('thead');
   const headerRow = document.createElement('tr');
-  const headers = ["User Name", "Category", "Gender"]
+  const headers = ["","User Name", "Category", "Gender"]
   headers.forEach(thData =>{
     const th = document.createElement('th');
     th.textContent = thData;
@@ -1109,9 +1109,13 @@ async function allUser() {
 
   const searchData = []
   const tableBody = document.createElement('tbody');
+  tableBody.className = 'users';
   const rowData = await eel.get_users_data()();
   rowData.forEach(row =>{
     const rowEl = document.createElement('tr');
+    const slt = document.createElement('td');
+    slt.className = 'user-check-box-cell';
+    rowEl.appendChild(slt);
 
     searchData.push({
       element: rowEl,
@@ -1132,7 +1136,7 @@ async function allUser() {
       let cellEl = rowEl.querySelectorAll('td');
       const cellElData = Array.from(cellEl).map(cl => cl.innerText);
       if (areIdentical(cellElData, row)){
-        const dlted = await eel.delete_user(row)();
+        const dlted = await eel.delete_user(arr=row)();
         allUser();
       };
     };
@@ -1227,6 +1231,89 @@ async function allUser() {
     tableBody.appendChild(rowEl);
   });
   
+  // select btn
+  const btnDiv1 = document.createElement('div');
+  const selectBtn = document.createElement('button');
+  selectBtn.className = 'upper-bar-btn';
+  selectBtn.textContent = 'Select'
+  const selectedUser = new Set();
+  selectBtn.onclick = async function(params) {
+    const getButtons = document.querySelectorAll('.last-cell-btn')
+
+    if (getButtons){
+      getButtons.forEach(btn =>{
+        btn.classList.toggle('hide', true);
+      });
+
+      // ignore selection btn
+      const btnDiv5 = document.createElement('div');
+      const ignoreSltBtn = document.createElement('button');
+      ignoreSltBtn.className = 'upper-bar-btn';
+      ignoreSltBtn.textContent = 'Ignore'
+      ignoreSltBtn.onclick = async function (params) {
+        allUser() 
+      }
+      btnDiv5.appendChild(ignoreSltBtn);
+      upperBar.appendChild(btnDiv5);
+
+      //delete selected btn
+      const btnDiv4 = document.createElement('div');
+      const dltSelectedBtn = document.createElement('button');
+      dltSelectedBtn.className = 'upper-bar-btn';
+      dltSelectedBtn.id = 'delete-selected-btn';
+      dltSelectedBtn.textContent = 'Delete Selected';
+      dltSelectedBtn.style.display = 'none';
+      const users = [];
+      const decodeCategory = {'Student': 1, 'Teacher': 2, 'Staff': 3};
+      dltSelectedBtn.onclick = async function (params) {
+        let usersDetails = [];
+        if (Array.from(selectedUser).length !== 0){
+          Array.from(selectedUser).forEach(row =>{
+            let cells = row.querySelectorAll('td');
+            let sortedCells = Array.from(cells).slice(1);
+            usersDetails.push(sortedCells.map(dt => dt.innerText));
+          });
+          
+          for (const selectedUser of usersDetails){
+            await eel.delete_user(selectedUser)();
+          }
+        };
+        allUser();
+      };
+
+      btnDiv4.appendChild(dltSelectedBtn);
+      upperBar.appendChild(btnDiv4);
+    }
+
+
+    let getTheCells = document.querySelectorAll('.user-check-box-cell');
+    Array.from(getTheCells).forEach(checkCell =>{
+      if (checkCell.children.length == 0){
+        let checkeBox = document.createElement('input');
+        checkeBox.type = 'checkbox';
+        checkeBox.className = 'user-check-box';
+        checkCell.appendChild(checkeBox);
+      };
+    });
+
+    const boxes = document.querySelectorAll('.user-check-box');
+
+    boxes.forEach(box =>{
+      box.addEventListener('change', e =>{
+        const row = e.target.closest('tr');
+        if (e.target.checked){
+          selectedUser.add(row);
+          const dltBtn = document.querySelector('#delete-selected-btn');
+          dltBtn.style.display = 'block';
+        }else{
+          selectedUser.delete(row);
+        };
+      });
+    }); 
+  }; 
+  btnDiv1.appendChild(selectBtn);
+  upperBar.appendChild(btnDiv1);
+
   //search bar
   const btnDiv3 = document.createElement('div');
   const searchBarLabel = document.createElement('label');

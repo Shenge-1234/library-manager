@@ -104,14 +104,15 @@ def edit_user(beforedit, edited):
 
 # delete user
 @eel.expose
-def delete_user(param: list):
-  category_value = {'Student': 1, 'Teacher': 2, 'Staff': 3}
+def delete_user(arr: list=None, obj: dict=None):
   user = Tables("User")
+  category_value = {'Student': 1, 'Teacher': 2, 'Staff': 3}
   details = {}
-  details['Name'] = param[0]
-  details['Category'] = category_value[param[1]]
-  details['Gender'] = param[2]
+  details['Name'] = arr[0]
+  details['Category'] = category_value[arr[1]]
+  details['Gender'] = arr[2]
   user.delete(**details)
+
 
 eel.start("hypertext.html")
 
