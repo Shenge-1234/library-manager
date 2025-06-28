@@ -14,6 +14,8 @@ def status():
   data['inservice'] = book.read(entity="Book.Name", count_by="Book.Available", where='Book.Available = "false"', groupby="Book.Name" ,count=True)
   return data
 
+print(status())
+
 # save a book
 @eel.expose
 def save_data(data):

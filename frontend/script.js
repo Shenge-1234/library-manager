@@ -32,7 +32,6 @@ window.onload = async() => {
     upperBar.style.justifyContent = 'flex-start';
     upperBar.style.position = 'sticky';
   
-    
     // btns in upperBar
     const btnDiv1 = document.createElement('div');
     btnDiv1.className = 'upper-bar-btn-div';
@@ -69,7 +68,7 @@ window.onload = async() => {
     const status = document.querySelector('.book-grid');
     status.innerHTML = ''; // clear previous content
     status.style.display = 'grid';
-    
+    status.style.gridTemplateColumns = 'repeat(4, 300px)';
     
     // retrieving list of turples in status data
     const collectedBooks = statusData.total; 
@@ -88,6 +87,7 @@ window.onload = async() => {
       collectedBooks.forEach(collectedBooks => {
         
         const sortedData = {
+          img: '',
           name: '',
           genre: '',
           total: '',
@@ -101,6 +101,7 @@ window.onload = async() => {
         allTableData.forEach(data =>{
           if (data[2] == collectedBooks[0]){
             sortedData.genre = data[10];
+            sortedData.img = data[data.length -3];
           };
         });
         
@@ -128,6 +129,19 @@ window.onload = async() => {
           
         const bookItem = document.createElement('div');
         bookItem.className = 'book-container';
+        bookItem.style.display = 'flex';
+        bookItem.style.flexDirection = 'column';
+        bookItem.style.backgroundColor = 'white';
+        
+        //image div
+        const imgDiv = document.createElement('div');
+        imgDiv.className = 'book-image-container';
+        const imgEl = document.createElement('img');
+        imgEl.src = sortedData.img;
+        imgEl.style.width = '100%';
+        imgEl.style.height = '150';
+        imgDiv.appendChild(imgEl);
+        bookItem.appendChild(imgDiv);
 
         const nameDiv = document.createElement('div');
         nameDiv.className = 'book-name';
@@ -171,7 +185,7 @@ window.onload = async() => {
       
         // append the book item to the status container
         status.appendChild(bookItem);   
-      })
+      });
     };
   };
 
@@ -683,7 +697,7 @@ window.onload = async() => {
       formPopup.appendChild(formEl);
 
       let userRegistered = await eel.save_user(userFormData)();
-      currentStatus();
+      allUser()
       formEl.reset();
     };
     
@@ -1036,20 +1050,10 @@ async function specialFunctionalities(){
     spaceSelect.appendChild(tableContainer);
   }
 
-  // search bar
-  const btnDiv3 = document.createElement('div');
-  const searchBarLabel = document.createElement('label');
-  const searchBar = document.createElement('input');
-  searchBar.type = 'search';
-  searchBar.placeholder = 'Search by User Name, Book Name or Book ID';
-  searchBarLabel.textContent = 'Search';
-  searchBarLabel.prepend(searchBar);
-  btnDiv3.appendChild(searchBarLabel);
-  btnDiv3.appendChild(searchBar);
-  upperBar.appendChild(btnDiv3);
-
   topEl. appendChild(upperBar);
 
+  // search functionality
+  const searchBar = document.querySelector('#search-bar');
   // extracting search data
   let searchData = [];
   for (const [k,v] of Object.entries(tableData)){
@@ -1135,6 +1139,7 @@ async function allUser() {
     deleteBtn.onclick = async function(params) {
       let cellEl = rowEl.querySelectorAll('td');
       const cellElData = Array.from(cellEl).map(cl => cl.innerText);
+      cellElData.shift(); // remove the first empty string
       if (areIdentical(cellElData, row)){
         const dlted = await eel.delete_user(arr=row)();
         allUser();
@@ -1146,9 +1151,11 @@ async function allUser() {
     editBtn.className = 'last-cell-btn';
     
     const currentRowData = Array.from(rowEl.children).map(td => td.innerText);
+    currentRowData.shift(); // ignore the first empty column
     editBtn.onclick = async function (params) {
       const editRow = rowEl.closest('tr');
-      const allCells = editRow.querySelectorAll('td');
+      const allCells = Array.from(editRow.querySelectorAll('td'));
+      allCells.shift();
       const lastCellBtns = document.querySelectorAll('.last-cell-btn')
       lastCellBtns.forEach(btn => {
         btn.classList.toggle('hide');
@@ -1157,33 +1164,34 @@ async function allUser() {
       //cells edit bars
       const nameBar = document.createElement('input');
       nameBar.type = 'text'
-      nameBar.placeholder = 'Full Name';
       const existedName = allCells[0].innerText;
       nameBar.defaultValue = existedName;
       allCells[0].textContent = null;
       allCells[0].appendChild(nameBar);
       
       const categoryBar = document.createElement('select');
-      const existedCat = allCells[1].textContent;
-      categoryBar.defaultValue = existedCat;
+      const existedCat = allCells[1].innerText;
       const allCategories = await eel.get_categories()();
       allCategories.forEach(([val,cat]) =>{
         const option = document.createElement('option');
         option.textContent = cat;
         option.value = val;
+        option.selected = (existedCat == cat)? true: false;
         categoryBar.appendChild(option)
       });
-      allCells[1].textContent = null;
+      allCells[1].textContent = null; // remove already data in cell
       allCells[1].appendChild(categoryBar);
       
-      allCells[2].textContent = null;
       const labelValue = [{label: 'F', value: 'Female'}, {label: 'M', value: 'Male'}];
+      const existedGender = allCells[2].innerText;
       labelValue.forEach(obj =>{
         const label = document.createElement('label');
-        label.textContent = obj.label
+        label.textContent = obj.label;
         const radio = document.createElement('input');
         radio.type = 'radio';
         radio.name = 'Gender';
+        radio.checked = (existedGender === obj.value) ? true: false;
+        console.log(radio.checked, allCells[2].innerText,obj.value );
         radio.value = obj.value;
         allCells[2].appendChild(radio);
         allCells[2].appendChild(label);
@@ -1201,7 +1209,7 @@ async function allUser() {
         beforeEdit['Name'] = currentRowData[0];
 
         const parseCatId = await eel.get_categories()();
-
+        // replace id with categoey
         parseCatId.forEach(([val,cat]) => {
 
           if (cat == currentRowData[1]){
@@ -1210,6 +1218,7 @@ async function allUser() {
         });
 
         beforeEdit['Gender'] = currentRowData[2];
+        console.log(beforeEdit, edited);
         const update = await eel.edit_user(beforeEdit, edited)();
         allUser();
       };
@@ -1221,8 +1230,7 @@ async function allUser() {
       };
       
       editRow.appendChild(submitBtn);
-      editRow.appendChild(closeBtn);
-      
+      editRow.appendChild(closeBtn);  
     };
     
     rowEl.appendChild(editBtn);
@@ -1240,19 +1248,20 @@ async function allUser() {
   selectBtn.onclick = async function(params) {
     const getButtons = document.querySelectorAll('.last-cell-btn')
 
-    if (getButtons){
-      getButtons.forEach(btn =>{
-        btn.classList.toggle('hide', true);
-      });
+    getButtons.forEach(btn =>{
+      btn.classList.toggle('hide', true);
+    });
+    if (! document.getElementById('select-btn')){
 
       // ignore selection btn
       const btnDiv5 = document.createElement('div');
       const ignoreSltBtn = document.createElement('button');
       ignoreSltBtn.className = 'upper-bar-btn';
-      ignoreSltBtn.textContent = 'Ignore'
+      ignoreSltBtn.id = 'select-btn';
+      ignoreSltBtn.textContent = 'Ignore';
       ignoreSltBtn.onclick = async function (params) {
-        allUser() 
-      }
+        allUser() ;
+      };
       btnDiv5.appendChild(ignoreSltBtn);
       upperBar.appendChild(btnDiv5);
 
@@ -1270,7 +1279,7 @@ async function allUser() {
         if (Array.from(selectedUser).length !== 0){
           Array.from(selectedUser).forEach(row =>{
             let cells = row.querySelectorAll('td');
-            let sortedCells = Array.from(cells).slice(1);
+            let sortedCells = Array.from(cells).slice(1); // ignore first empty string
             usersDetails.push(sortedCells.map(dt => dt.innerText));
           });
           
@@ -1284,7 +1293,6 @@ async function allUser() {
       btnDiv4.appendChild(dltSelectedBtn);
       upperBar.appendChild(btnDiv4);
     }
-
 
     let getTheCells = document.querySelectorAll('.user-check-box-cell');
     Array.from(getTheCells).forEach(checkCell =>{
@@ -1310,7 +1318,7 @@ async function allUser() {
         };
       });
     }); 
-  }; 
+  };
   btnDiv1.appendChild(selectBtn);
   upperBar.appendChild(btnDiv1);
 

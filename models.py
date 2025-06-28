@@ -23,7 +23,7 @@ cur.execute("CREATE TABLE IF NOT EXISTS Book(" \
 "Available BOOLEAN DEFAULT FALSE," \
 "Genre VARCHAR," \
 "Entry_date DATETIME DEFAULT CURRENT_TIMESTAMP," \
-"Cover BLOB," \
+"Cover TEXT DEFAULT 'media/OIP.webp'," \
 "FOREIGN KEY(Genre) REFERENCES Genre(Id) ON DELETE CASCADE)")
 
 # table category
