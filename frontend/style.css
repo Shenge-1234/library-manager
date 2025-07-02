@@ -76,14 +76,15 @@ form input, form select, form textarea {
   column-gap: 50px;
   row-gap: 30px;
   padding-left: 13px;
+  padding-top: 50px;
 }
 
 .hide {
-  display: none;
+  display: none !important;
 }
 
 .top-bar {
-  top: 500px;
+  position: fixed;
   background-color: white;
   border: none;
 }

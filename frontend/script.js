@@ -73,6 +73,8 @@ window.onload = async() => {
     // retrieving list of turples in status data
     const collectedBooks = statusData.total; 
     
+    const formPopup = document.querySelector('.form-popup'); // the form
+
     if (collectedBooks.length == 0){
 
       // if there is no book registered, display a welcome message
@@ -84,16 +86,8 @@ window.onload = async() => {
       status.appendChild(welcomeP);
       
     }else{
+      const sortedData = {};
       collectedBooks.forEach(collectedBooks => {
-        
-        const sortedData = {
-          img: '',
-          name: '',
-          genre: '',
-          total: '',
-          available: '',
-          inservice: '',
-        };
         
         sortedData.name = collectedBooks[0];
         
@@ -127,12 +121,15 @@ window.onload = async() => {
             }
           });
           
-        const bookItem = document.createElement('div');
+        let bookItem = document.createElement('button');
         bookItem.className = 'book-container';
         bookItem.style.display = 'flex';
         bookItem.style.flexDirection = 'column';
         bookItem.style.backgroundColor = 'white';
+        bookItem.style.borderRadius = '10px';
+        bookItem.style.padding = '0px';
         
+
         //image div
         const imgDiv = document.createElement('div');
         imgDiv.className = 'book-image-container';
@@ -184,8 +181,65 @@ window.onload = async() => {
         bookItem.appendChild(inserviceDiv);
       
         // append the book item to the status container
-        status.appendChild(bookItem);   
+        status.appendChild(bookItem);  
+        
+        //clicking book functionalities
+        bookItem.onclick = async function () {
+          formPopup.style.display = 'block';
+          const formEl = document.createElement('form');
+
+          const imgLabel = document.createElement('label');
+          imgLabel.textContent = 'Change image ';
+          const imgBar = document.createElement('input');
+          imgBar.type = 'file';
+          formEl.appendChild(imgLabel);
+          formEl.appendChild(imgBar);
+          formEl.appendChild(document.createElement('br'));
+          
+          const dltBtn = document.createElement('button');
+          dltBtn.textContent = 'Remove this book from system';
+          dltBtn.onclick = async function () {
+            let theName = bookItem.querySelector('.book-name p').innerText.split(':')[1].trim();
+            console.log(theName)
+            let msg = await eel.remove_book(theName)();
+            console.log(msg);
+          };
+          formEl.appendChild(dltBtn);
+          formEl.appendChild(document.createElement('br'));
+
+          const closeBtn = document.createElement('button');
+          closeBtn.textContent = 'Close';
+          closeBtn.onclick = async function(){
+            formPopup.style.display = 'none';
+          };
+          formEl.appendChild(closeBtn)
+          formPopup.appendChild(formEl);
+        };
+
       });
+
+      // search functionalities
+      const getBookContainer = document.querySelectorAll('.book-container');
+      const books = [];
+      getBookContainer.forEach(bk =>{
+        books.push({
+          book: [bk.querySelector('.book-name p').innerText.split(":")[1].trim().toLowerCase(), bk.querySelector('.book-genre p').innerText.split(':')[1].trim().toLowerCase()],
+          element: bk
+        });
+      });
+
+      const searchBar = document.querySelector('#search-bar');
+      searchBar.placeholder = "Search by Book name or Genre";
+      searchBar.addEventListener("input",e =>{
+        let searchInput = e.target.value.toLowerCase();
+        books.forEach(bkDetails =>{
+          const isVisible = (bkDetails.book.some(bk => bk.includes(searchInput)));
+          bkDetails.element.classList.remove('book-container');
+          bkDetails.element.classList.toggle('hide', !isVisible);
+        });
+      });
+
+      
     };
   };
 
@@ -302,7 +356,7 @@ window.onload = async() => {
     form.appendChild(entryDateBar);
     form.appendChild(document.createElement('br'));
 
-    /*
+    // cover
     const coverLabel = document.createElement('label');
     const coverBar = document.createElement('input');
     coverBar.type = 'file';
@@ -312,7 +366,7 @@ window.onload = async() => {
     coverBar.prepend(coverLabel)
     form.appendChild(coverLabel);
     form.appendChild(coverBar);
-    form.appendChild(document.createElement('br'));*/
+    form.appendChild(document.createElement('br'));
 
     //submit-btn
     const btn = document.createElement('button');
@@ -325,17 +379,34 @@ window.onload = async() => {
 
      const enteredData = new FormData(form);
      const formData = {};
-     enteredData.forEach((value, key) =>{
-      if (key == 'Genre'){
-        formData[key] = parseInt(value);
+     let imgFile = null;
+     enteredData.forEach(async(value, key) =>{
+        if (key == 'Genre'){
+          formData[key] = parseInt(value);
+        }else if(key == 'Cover'){
+          imgFile = value;
+        }else{
+          formData[key] = value;
+        };
+      });
+      if(imgFile.size !== 0){
+        const reader = new FileReader();
+        reader.onload = async function (e) {
+          
+          const base64 = e.target.result; //get bs4 data(image)
+          formData['Cover'] = await eel.upload_img(base64, imgFile.name)(); //send into py
+          await eel.save_data(formData)();
+          await currentStatus();
+          form.reset();
+        };
+        reader.readAsDataURL(imgFile);
       }else{
-        formData[key] = value;
+        await eel.save_data(formData)();
+        await currentStatus();
+        form.reset();
       };
-    });
-    const save = await eel.save_data(formData)();
-   await currentStatus();
-    form.reset();
-    };
+    }
+
 
     //close button
     const closeButton = document.createElement('button');
@@ -780,18 +851,10 @@ window.onload = async() => {
         tableBody.appendChild(row);
       }
     });
-    // search functionality
-    const btnDiv2 = document.createElement('div');
-    const searchBarLabel = document.createElement('label');
-    searchBarLabel.textContent = 'Search';
-    const searchBar = document.createElement('input');
-    searchBar.type = 'search';
-    searchBar.placeholder = 'Search by User name, Book Name, or Book ID';
-    searchBarLabel.prepend(searchBar);
-    btnDiv2.appendChild(searchBarLabel);
-    btnDiv2.appendChild(searchBar);
-    upperBar.appendChild(btnDiv2);
 
+    // search functionality
+    const searchBar = document.querySelector('#search-bar');
+    searchBar.placeholder = 'Search by User name, Book Name, or Book ID';
     if (searchData){
       searchBar.addEventListener('input', e =>{
         let searchInput = e.target.value.toLowerCase();
@@ -1054,8 +1117,8 @@ async function specialFunctionalities(){
 
   // search functionality
   const searchBar = document.querySelector('#search-bar');
-  // extracting search data
-  let searchData = [];
+  searchBar.placeholder = 'Search by Book id, Name and User Name';
+  let searchData = []; // extracting search data
   for (const [k,v] of Object.entries(tableData)){
     searchData.push({
       name: v.name,
@@ -1321,20 +1384,11 @@ async function allUser() {
   };
   btnDiv1.appendChild(selectBtn);
   upperBar.appendChild(btnDiv1);
+  topEl.appendChild(upperBar);
 
   //search bar
-  const btnDiv3 = document.createElement('div');
-  const searchBarLabel = document.createElement('label');
-  searchBarLabel.textContent = 'search';
-  const searchBar = document.createElement('input');
-  searchBar.type = 'search';
+  const searchBar = document.querySelector('#search-bar');
   searchBar.placeholder = 'Search By User Name';
-  searchBarLabel.prepend(searchBar);
-  btnDiv3.appendChild(searchBarLabel)
-  btnDiv3.appendChild(searchBar);
-  upperBar.appendChild(btnDiv3);
-  
-  topEl.appendChild(upperBar);
   searchBar.addEventListener('input', e =>{
     const searchInput = e.target.value.toLowerCase();
     searchData.forEach(data =>{
