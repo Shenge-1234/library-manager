@@ -12,8 +12,11 @@
       <h1>LIBRARY MANAGER</h1>
     </div>
     <div class="search-div">
-      <label for="search-bar">Search </label>
-      <input type="text" id="search-bar">
+      <div class="search-container">
+        <label id="search-label" for="search-bar">Search </label>
+        <input type="text" id="search-bar">
+      </div>
+      
     </div>
   </header>
   <div class="layout">
@@ -22,7 +25,7 @@
       <button onclick="allUser()"><div>User</div></button>
       <button onclick="inserviceRecord()"><div>In-Service Book Records</div></button>
       <button  onclick="specialFunctionalities()"><div>Special</div></button>
-      <button><div>Report</div></button>
+      <button onclick="exportDoc()"><div>Report</div></button>
     </nav>
     <main>
       <div class="top-bar"></div>

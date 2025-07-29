@@ -96,8 +96,9 @@ class Tables:
             query += f" WHERE {where}"
         if groupby:
             query += f" GROUP BY {groupby}"
-
+    
     self.cur.execute(query)
+
     return self.cur.fetchall()
 
   def update(self, where: dict, new_values: dict):
@@ -115,3 +116,11 @@ class Tables:
 
   def close(self):
     self.connection.close()
+
+  def exist(self, **kwarg):
+     where_clause = ", ".join(f"{k}= ?" for k in kwarg.keys())
+     values = tuple(kwarg.values())
+     self.cur.execute(f"SELECT EXISTS(SELECT 1 FROM {self.table} WHERE {where_clause})", values)
+     self.connection.commit()
+     result = self.cur.fetchone()[0]
+     return True if result == 1 else False

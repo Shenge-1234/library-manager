@@ -68,6 +68,10 @@ window.onload = async() => {
     const status = document.querySelector('.book-grid');
     status.innerHTML = ''; // clear previous content
     status.style.display = 'grid';
+    status.style.columnGap = '50px';
+    status.style.rowGap = '50px';
+    status.style.paddingLeft = '13px';
+    status.style.paddingTop = '50px';
     status.style.gridTemplateColumns = 'repeat(4, 300px)';
     
     // retrieving list of turples in status data
@@ -129,7 +133,6 @@ window.onload = async() => {
         bookItem.style.borderRadius = '10px';
         bookItem.style.padding = '0px';
         
-
         //image div
         const imgDiv = document.createElement('div');
         imgDiv.className = 'book-image-container';
@@ -185,6 +188,7 @@ window.onload = async() => {
         
         //clicking book functionalities
         bookItem.onclick = async function () {
+          formPopup.innerHTML = '';
           formPopup.style.display = 'block';
           const formEl = document.createElement('form');
 
@@ -211,11 +215,12 @@ window.onload = async() => {
           closeBtn.textContent = 'Close';
           closeBtn.onclick = async function(){
             formPopup.style.display = 'none';
-          };
-          formEl.appendChild(closeBtn)
-          formPopup.appendChild(formEl);
-        };
+          }
 
+          formEl.appendChild(closeBtn);
+          formPopup.appendChild(formEl);
+          
+        };
       });
 
       // search functionalities
@@ -228,6 +233,8 @@ window.onload = async() => {
         });
       });
 
+      const searchContainer = document.querySelector('.search-container');
+      searchContainer.style.display = 'block';
       const searchBar = document.querySelector('#search-bar');
       searchBar.placeholder = "Search by Book name or Genre";
       searchBar.addEventListener("input",e =>{
@@ -238,8 +245,6 @@ window.onload = async() => {
           bkDetails.element.classList.toggle('hide', !isVisible);
         });
       });
-
-      
     };
   };
 
@@ -389,24 +394,26 @@ window.onload = async() => {
           formData[key] = value;
         };
       });
+      let base64 = null;
       if(imgFile.size !== 0){
         const reader = new FileReader();
         reader.onload = async function (e) {
           
-          const base64 = e.target.result; //get bs4 data(image)
-          formData['Cover'] = await eel.upload_img(base64, imgFile.name)(); //send into py
+          base64 = e.target.result; //get bs4 data(image)
+          formData['Cover'] = await eel.upload_img(base64, imgFile.name, formData['Name'])(); //send into py
           await eel.save_data(formData)();
           await currentStatus();
           form.reset();
-        };
+        }
         reader.readAsDataURL(imgFile);
       }else{
+        formData['Cover'] = await eel.upload_img(null, null, formData['Name'])(); // use already obtained cover
+        console.log(formData['Cover']);
         await eel.save_data(formData)();
         await currentStatus();
         form.reset();
       };
     }
-
 
     //close button
     const closeButton = document.createElement('button');
@@ -771,8 +778,6 @@ window.onload = async() => {
       allUser()
       formEl.reset();
     };
-    
-
   };
 
   async function inserviceRecord(){
@@ -853,6 +858,8 @@ window.onload = async() => {
     });
 
     // search functionality
+    const searchContainer = document.querySelector('.search-container');
+    searchContainer.style.display = 'block';
     const searchBar = document.querySelector('#search-bar');
     searchBar.placeholder = 'Search by User name, Book Name, or Book ID';
     if (searchData){
@@ -1116,6 +1123,8 @@ async function specialFunctionalities(){
   topEl. appendChild(upperBar);
 
   // search functionality
+  const searchContainer = document.querySelector('.search-container');
+  searchContainer.style.display = 'block';
   const searchBar = document.querySelector('#search-bar');
   searchBar.placeholder = 'Search by Book id, Name and User Name';
   let searchData = []; // extracting search data
@@ -1387,6 +1396,8 @@ async function allUser() {
   topEl.appendChild(upperBar);
 
   //search bar
+  const searchContainer = document.querySelector('.search-container');
+  searchContainer.style.disabled = 'block';
   const searchBar = document.querySelector('#search-bar');
   searchBar.placeholder = 'Search By User Name';
   searchBar.addEventListener('input', e =>{
@@ -1400,5 +1411,54 @@ async function allUser() {
 
   tableElement.appendChild(tableBody);
   spaceSelect.appendChild(tableElement);
-  
 }
+
+async function exportDoc() {
+  const spaceSelect = document.querySelector('.book-grid');
+  spaceSelect.innerHTML = ''; // clear previous content
+  spaceSelect.style.display = 'flex';
+  spaceSelect.style.flexDirection = 'column';
+  spaceSelect.style.justifyContent= 'center';
+  spaceSelect.style.alignItems = 'center';
+  spaceSelect.style.padding = '0';
+
+  const upperBar = document.querySelector('.top-bar');
+  upperBar.innerHTML= ''; // clear upper buttons
+
+  const searchContainer = document.querySelector('.search-container');
+  searchContainer.style.display = 'none'; // hide search bar
+
+  const searchPlaceholder = document.querySelector('.search-div');
+  searchPlaceholder.style.height =  '20px'; //ocupy search bar space
+
+  //whole report button
+  const exportPdfreport = document.createElement('button')
+  exportPdfreport.className = 'export-pdf-btn';
+  exportPdfreport.textContent = 'Export entire PDF Report';
+  spaceSelect.appendChild(exportPdfreport);
+  exportPdfreport.onclick = async function() {
+    let reportDestination = await eel.report_path()();
+    await eel.generate_pdf('Whole Report', reportDestination)();
+  }
+
+  // book status report button
+  const exportPdfStatus = document.createElement('button');
+  exportPdfStatus.className = 'export-pdf-btn';
+  exportPdfStatus.textContent = 'Export Book Status Report';
+  spaceSelect.appendChild(exportPdfStatus);
+  exportPdfStatus.onclick = async function() {
+    let reportDestination = await eel.report_path()();
+    await eel.generate_pdf('table books status', reportDestination)();
+  };
+
+  // borrower report button
+  const exportPdfBorrower = document.createElement('button');
+  exportPdfBorrower.className = 'export-pdf-btn';
+  exportPdfBorrower.textContent = 'Export Borrower Report';
+  spaceSelect.appendChild(exportPdfBorrower);
+  exportPdfBorrower.onclick = async function() {
+    let reportDestination = await eel.report_path()();
+    await eel.generate_pdf('table borrowers', reportDestination)();
+  };
+
+};

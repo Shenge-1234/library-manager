@@ -2,6 +2,11 @@ import eel
 from models import Tables
 import base64
 import os
+from fpdf import FPDF
+import tkinter
+from tkinter import filedialog
+import threading
+
 
 eel.init("frontend")
 
@@ -140,18 +145,124 @@ def remove_book(name):
 
 # upload cover into system
 @eel.expose
-def upload_img(base64_str, img_name):
+def upload_img(base64_str, img_name, book_name):
+  books = Tables('Book')
+  is_available = books.exist(Name=book_name)
 
-  #separate img data with headers like: data:image/jepg, wejhfkhakhaqgdahgdh...
-  header, encoded = base64_str.split(',')
-  data = base64.b64decode(encoded) # decode bs64 from js into binary
-  destined_path = os.path.join(os.path.dirname(__file__), 'frontend', 'media', img_name)# C:\Users\cedric\OneDrive\Desktop\GS MUNYINYA LIB\library\frontend\media\img_name
-  if os.path.exists(destined_path):
-    return f'media/{img_name}'
+  if is_available: 
+
+    ancient_covers = books.read(entity="Book.Cover", where=f"Name = '{book_name}'")
+    if base64_str != None and ancient_covers[-1][0] == "media/OIP.webp":
+      img_path = os.path.join(os.path.dirname(__file__), "frontend", "media", img_name)
+      header, encoded = base64_str.split(",", 1)
+      decoded = base64.b64decode(encoded)
+      with open(img_path, "wb") as img_file: # upload img into system
+        img_file.write(decoded)
+      return f"media/{img_name}"
+    
+    else: # take already contained img when user inserted none
+      return f"{ancient_covers[-1][0]}"
+    
+  else: 
+    if base64_str == None: # use default img if user insert none(for first time)
+      return f"media/OIP.webp"
+    else:
+      header, encoded = base64_str.split(",", 1)
+      decoded = base64.b64decode(encoded)
+      save_path = os.path.join(os.path.dirname(__file__), "frontend", "media", img_name)
+      with open(save_path, "wb") as img_file: # upload img into system
+        img_file.write(decoded)
+      return f"media/{img_name}"
+
+# report path
+@eel.expose
+def report_path():
+  root = tkinter.Tk()
+  root.withdraw()  # Hide the root window
+  root.attributes('-topmost', True)  # Bring dialog to front
+  file_path = filedialog.askdirectory(title="Choose folder to Save Report")
+  root.destroy()
+  return file_path
+
+# make a pdf report
+@eel.expose
+def generate_pdf( query_table:str = None, directory: str = None):
+  data = {}
+  book = Tables("Book")
+  service = Tables("Service")
+  data["books_by_genre"] = book.read(entity="Genre.Name", count_by="*", groupby="Book.Genre", count=True, join="Genre")
+  data['remained'] = book.read(entity='Book.Name', count_by="Book.id", where = 'Available="true"', groupby="Book.Name", count=True)
+  data['lended'] = book.read(entity="Book.Name", count_by="Book.Available", where='Book.Available = "false"', groupby="Book.Name" ,count=True)
+  data['borrowe_data'] = service.read(entity="User.Name, User.Category", groupby="Service.User", join="User", count=True)
+
+  pdf = FPDF()
+  pdf.set_auto_page_break(auto=True, margin=15)
+  pdf.add_page(orientation="P", format="Letter")
+  pdf.set_font(family="helvetica", size=12, style="BU")
+  pdf.cell(center=True, text="Books library reports on date")
+
+  # table books by genre
+  if query_table == 'Whole Report' or query_table == 'table books_by_genre':
+
+    pdf.set_xy(0,20)
+    with pdf.table() as table:
+      data["books_by_genre"].insert(0, ["Genre", "Number of Books"])
+      for i, row_data in enumerate(data["books_by_genre"]):
+        row = table.row()
+        if i == 0:
+          pdf.set_font(family="helvetica", size=10, style="B")
+        else:
+          pdf.set_font(family="helvetica", size=10, style="")
+        for cell_data in row_data:
+          row.cell(str(cell_data))
   else:
-    with open(destined_path, 'wb') as f:   # write decoded data into new file.
-      f.write(data)
-    return f'media/{img_name}'
+    pass
+  end_y1 = pdf.get_y()
+      
+  # table books status
+  if query_table == 'Whole Report' or query_table == 'table books status':
+    pdf.set_xy(0, end_y1 + 20)
+    pdf.set_font(family="helvetica", size=12, style="BU")
+    pdf.cell(center=True, text="Books Status")
+
+    pdf.set_xy(0, end_y1 + 30)
+    with pdf.table() as table:
+      data['remained'].insert(0, ["Book Name", "Current number in the room"]) # make table header
+      for i, row_data in enumerate(data['remained']):
+        row = table.row()
+        if i == 0:
+          pdf.set_font(family="helvetica", size=10, style="B")
+        else:
+          pdf.set_font(family="helvetica", size=10, style="")
+        for cell_data in row_data:
+          row.cell(str(cell_data))
+  else:
+    pass
+  end_y2 = pdf.get_y()
+
+  # table borrowers
+  if query_table == 'Whole Report' or query_table == 'table borrowers':
+    pdf.set_xy(0, end_y2 + 20)
+    pdf.set_font(family="helvetica", size=12, style="BU")
+    pdf.cell(center=True, text="Borrowers")
+
+    pdf.set_xy(0, end_y2 + 30)
+    with pdf.table() as table:
+      data['borrowe_data'].insert(0, ["User Name", "Category", "Number of Borrowed Books"]) # make table header
+      for i, row_data in enumerate(data['borrowe_data']):
+        row = table.row()
+        if i == 0:
+          pdf.set_font(family="helvetica", size=10, style="B")
+        else:
+          pdf.set_font(family="helvetica", size=10, style="")
+        for cell_data in row_data:
+          row.cell(str(cell_data))
+  else:
+    pass
+
+  full_path = os.path.join(directory, "library_report on date.pdf")
+  pdf.output(full_path)
+  
 
 eel.start("hypertext.html")
 

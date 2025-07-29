@@ -71,14 +71,6 @@ form input, form select, form textarea {
   margin-right: 20px;
 }
 
-.book-grid {
-  display: grid;
-  column-gap: 50px;
-  row-gap: 30px;
-  padding-left: 13px;
-  padding-top: 50px;
-}
-
 .hide {
   display: none !important;
 }
