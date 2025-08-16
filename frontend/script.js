@@ -49,7 +49,9 @@ window.onload = async() => {
     const lendBookBtn = document.createElement('button');
     lendBookBtn.className = 'upper-bar-btn';
     lendBookBtn.textContent = 'Lend Book';
-    lendBookBtn.onclick = lendBook;
+    lendBookBtn.onclick = async function(params) {
+      lendBook(false); // single lend
+    } 
     btnDiv2.appendChild(lendBookBtn);
     upperBar.appendChild(btnDiv2);
     
@@ -265,6 +267,7 @@ window.onload = async() => {
     sn.name = 'sn';
     sn.placeholder = 'Enter Book identifition';
     snLabel.textContent = 'Book identification ';
+    sn.required = true; // make it required
     sn.prepend(snLabel);
     form.appendChild(snLabel);
     form.appendChild(sn);
@@ -277,6 +280,7 @@ window.onload = async() => {
     name.name = 'Name';
     name.placeholder = 'Enter Book name';
     nameLabel.textContent = 'Book Name ';
+    name.required = true; // make it required
     form.appendChild(nameLabel);
     form.appendChild(name);
     form.appendChild(document.createElement('br'));
@@ -288,6 +292,7 @@ window.onload = async() => {
     author.name = 'Author';
     author.placeholder = 'Author Names';
     authorLabel.textContent = 'Author ';
+    author.required = true; // make it required
     form.appendChild(authorLabel);
     form.appendChild(author);
     form.appendChild(document.createElement('br'));
@@ -298,6 +303,7 @@ window.onload = async() => {
     date.type = 'date';
     date.name = 'Published_date';
     dateLabel.textContent = 'Published Time ';
+    date.required = true; // make it required
     form.appendChild(dateLabel);
     form.appendChild(date);
     form.appendChild(document.createElement('br'));
@@ -314,6 +320,7 @@ window.onload = async() => {
       const available = document.createElement('input');
       available.type = 'radio';
       available.name = 'Available';
+      available.required = true; // make it required
       available.value = labelValue.value;
 
       radioLabel.textContent= ' '+ labelValue.label;
@@ -343,6 +350,7 @@ window.onload = async() => {
     genreValues.forEach(genreValues =>{
       const option = document.createElement('option');
       option.textContent = genreValues.text;
+      option.required = true; // make it required
       option.value = genreValues.value;
       genreBar.appendChild(option);
       form.appendChild(genreBar);
@@ -355,6 +363,7 @@ window.onload = async() => {
     entryDateBar.type = 'date';
     entryDateBar.name = 'Entry_date';
     entryDateBar.placeholder = 'Book Entry time';
+    entryDateBar.required = true; // make it required
     entryDateLabel.textContent = 'Entry time';
     entryDateBar.prepend(entryDateLabel);
     form.appendChild(entryDateLabel);
@@ -431,7 +440,16 @@ window.onload = async() => {
     statusElement.appendChild(form);
   };
 
-  async function lendBook(){
+  async function lendBook(multipleLend){
+
+    // collect already borrowers in array
+    let borrowersRecords = await eel.book_record()();
+    let borrowers = [];
+    for (let borrowersRecord of borrowersRecords){
+      borrowers.push(borrowersRecord[8]); // get borrower id(user)
+    };
+
+    // form
     const formPopup = document.querySelector('.form-popup');
     formPopup.innerHTML = ''; // clear previous content
     formPopup.style.display = 'block';
@@ -446,6 +464,7 @@ window.onload = async() => {
     snBarLabel.textContent = 'Book Identification: ';
     snBar.name = 'Book';
     snBar.placeholder = 'Select Book Identification(SN)';
+    snBar.required = true; // make it required
 
     // sn options
     const bookItems = statusData.all_table;
@@ -490,6 +509,7 @@ window.onload = async() => {
     const borrowerBar = document.createElement('select');
     borrowerBar.name = 'User ';
     borrowerBarLabel.textContent = 'Select Borrower: ';
+    borrowerBar.required = true; // make it required
     
     // borrower placeholder options
     const placeholderBorrower = document.createElement('option');
@@ -529,6 +549,7 @@ window.onload = async() => {
     returnTime.type = 'date';
     returnTime.name = 'Estimated_return_time';
     returnTime.placeholder = 'Expect return Date';
+    returnTime.required = true; // make it required
     returnTimeLabel.prepend(returnTime);
     formEl.appendChild(returnTimeLabel);
     formEl.appendChild(returnTime);
@@ -562,10 +583,23 @@ window.onload = async() => {
       enteredLendData.forEach((value, key) =>{
         lendFormData[key] = value;
       });
+      if (multipleLend){
 
-      let lend = await eel.save_lend(lendFormData)();
-      currentStatus();
-      formEl.reset();
+        let lend = await eel.save_lend(lendFormData)();
+        currentStatus();
+        formEl.reset();
+      }else{
+        // check if he already borrowed
+        const hasBorrowed = borrowers.includes(lendFormData.user)
+        if (hasBorrowed){
+          alert("User areldy borrowed. use special lend instead")
+          formEl.reset()
+        }else{
+          let lend = await eel.save_lend(lendFormData)();
+          currentStatus();
+          formEl.reset();
+        }
+      }
     };
   };
   
@@ -574,7 +608,6 @@ window.onload = async() => {
     formPopup.innerHTML = ''; // clear previous content
     formPopup.style.display = 'block';
 
-
     const formEl = document.createElement('form');
 
     // sn
@@ -582,6 +615,7 @@ window.onload = async() => {
     const snBar = document.createElement('select');
     snBarLabel.textContent = 'Book Identification: ';
     snBar.name = 'Book';
+    snBar.required = true; // make it required
 
     // placeholder for snBar
     const placeholder = document.createElement('option');
@@ -623,6 +657,7 @@ window.onload = async() => {
     returnTime.type = 'date';
     returnTime.name = 'Return_time';
     returnTime.placeholder = 'Return Date';
+    returnTime.required = true; // make it required
     returnTimeLabel.prepend(returnTime);
     formEl.appendChild(returnTimeLabel);
     formEl.appendChild(returnTime);
@@ -634,6 +669,7 @@ window.onload = async() => {
     commentBar.type = 'textarea';
     commentBar.name = 'Comment';  
     commentLabel.textContent = 'Comment: ';
+    commentBar.required = true; // make it required
     commentBar.placeholder = 'Enter comment';
     commentLabel.prepend(commentBar);
     formEl.appendChild(commentLabel);
@@ -688,6 +724,7 @@ window.onload = async() => {
     const categoryBar = document.createElement('select');
     categoryBar.name = 'Category';
     categoryLabel.textContent = 'Category ';
+    categoryBar.required = true; // make it required
     
     const placeholder = document.createElement('option');
     placeholder.value = '';
@@ -715,6 +752,7 @@ window.onload = async() => {
     nameBar.type = 'text';
     nameBar.name = 'Name';
     nameBar.placeholder = 'Enter Name';
+    nameBar.required = true; // make it required
     nameLabel.textContent = 'Name ';
     nameLabel.prepend(nameBar);
     formEl.appendChild(nameLabel);
@@ -732,6 +770,7 @@ window.onload = async() => {
       const genderBar = document.createElement('input');
       genderBar.type = 'radio';
       genderBar.name = 'Gender';
+      genderBar.required = true; // make it required
       genderBar.value = radioValues.value;
       
       radioLabel.textContent = ' ' + radioValues.label;
@@ -770,7 +809,6 @@ window.onload = async() => {
       enteredUserData.forEach((value, key) =>{
         userFormData[key] = value;
       });
-
 
       formPopup.appendChild(formEl);
 
@@ -821,7 +859,7 @@ window.onload = async() => {
     }else{
       const tableElement = document.createElement('table');
       const tableHeader = document.createElement('thead');
-    const headerRow = document.createElement('tr');
+      const headerRow = document.createElement('tr');
     
     const headers = ["Borrower's Name", 'Category', 'Book Names',"Book Identification", 'Lend Date', 'Expected Return','Return Deadline Status'];
     headers.forEach(headerText => {
@@ -845,8 +883,11 @@ window.onload = async() => {
         searchData.push({
             element: row,
             cellsData: [record[0], record[2], record[3]]
-          });
+        });
         
+        // remove user id index(2)
+        record.splice(2,1);
+
         // create a table cell for each data in the record
         record.forEach(data => {
           const td = document.createElement('td');
@@ -882,128 +923,8 @@ window.onload = async() => {
   };
 };
 
-async function specialLendForm(){
-  const formPopup = document.querySelector('.form-popup');
-  formPopup.innerHTML = ''; // clear previous content
-  formPopup.style.display = 'block';
-
-  const formEl = document.createElement('form');
-  
-  const statusData = await eel.status()();
-
-  // sn
-  const snBarLabel = document.createElement('label');
-  const snBar = document.createElement('select');
-  snBarLabel.textContent = 'Book Identification: ';
-  snBar.name = 'Book';
-  snBar.placeholder = 'Select Book Identification(SN)';
-
-  // sn options
-  const bookItems = statusData.all_table;
-  const neededData = {};
-
-  // option placeholder
-  const placeholder = document.createElement('option');
-  placeholder.value = '';
-  placeholder.textContent = 'Select Book Identification(SN)';
-  placeholder.disabled = true;
-  placeholder.selected = true;
-  snBar.appendChild(placeholder);
-
-    // loop through bookItems to create options
-    bookItems.forEach(bookItem => {
-      if (bookItem !== null && bookItem !== undefined) {
-        neededData['id'] = bookItem[0];
-        neededData['sn'] = bookItem[1];
-        neededData['name'] = bookItem[2];
-
-        const option = document.createElement('option');
-        option.textContent = neededData.sn + ' (' + neededData.name+ ')';
-        option.value = neededData.id;
-        snBar.appendChild(option);
-      }else{
-        const option = document.createElement('option');
-        option.textContent = 'No book registered';
-        option.value = '';
-        option.disabled = true; // disable the option if no books are registered
-        option.selected = false; // make it the default selected option
-        snBar.appendChild(option);
-      }
-    });
-
-    snBarLabel.prepend(snBar);
-    formEl.appendChild(snBarLabel);
-    formEl.appendChild(snBar);
-    formEl.appendChild(document.createElement('br'));
-    
-    // borrower
-    const borrowerBarLabel = document.createElement('label');
-    const borrowerBar = document.createElement('select');
-    borrowerBar.name = 'User ';
-    borrowerBarLabel.textContent = 'Select Borrower: ';
-    
-    // borrower placeholder options
-    const placeholderBorrower = document.createElement('option');
-    placeholderBorrower.value = '';
-    placeholderBorrower.textContent = 'Select name';
-    placeholderBorrower.disabled = true;
-    placeholderBorrower.selected = true;
-    borrowerBar.appendChild(placeholderBorrower);
-    
-    // loop through userData to create options
-    const userData = await eel.get_users()();
-    userData.forEach(user => {
-      if (user !== null && user !== undefined) {
-        const option = document.createElement('option');
-        option.textContent = user[2];
-        option.value = user[0]; // assuming user[0] is the user ID
-        borrowerBar.appendChild(option);
-      }else{
-        const option = document.createElement('option');
-        option.textContent = 'No user registered';
-        option.value = '';
-        option.disabled = true; // disable the option if no users are registered
-        option.selected = false; // make it the default selected option
-        borrowerBar.appendChild(option);
-      };
-    });
-    
-    borrowerBarLabel.prepend(borrowerBar);
-    formEl.appendChild(borrowerBarLabel);
-    formEl.appendChild(borrowerBar);
-    formEl.appendChild(document.createElement('br'));
-    
-    //return time
-    const returnTimeLabel = document.createElement('label');
-    const returnTime = document.createElement('input');
-    returnTimeLabel.textContent = 'Enter expected return time: ';
-    returnTime.type = 'date';
-    returnTime.name = 'Return_time';
-    returnTimeLabel.prepend(returnTime);
-    formEl.appendChild(returnTimeLabel);
-    formEl.appendChild(returnTime);
-    formEl.appendChild(document.createElement('br'));
-
-    //submit
-    const subBut = document.createElement('button');
-    subBut.className = 'btn';
-    subBut.type = 'submit';
-    subBut.textContent = 'Lend';
-    formEl.appendChild(subBut);
-    
-    //close button
-    const closeButton = document.createElement('button');
-    closeButton.className = 'btn';
-    closeButton.textContent = 'Close';
-    closeButton.type = 'button';
-    closeButton.onclick = function() {
-      formPopup.style.display = 'none';
-      formPopup.innerHTML = ''; // clear the form when closed
-    };
-
-    formEl.appendChild(closeButton);
-    formPopup.appendChild(formEl);
-    spaceSelect.appendChild(formPopup);
+async function specialLendForm(multipleLend){
+  await lendBook(multipleLend);
 };
 
 async function specialFunctionalities(){
@@ -1033,7 +954,9 @@ async function specialFunctionalities(){
   const specialLend = document.createElement('button');
   specialLend.className = 'upper-bar-btn';
   specialLend.textContent = 'Special Lend';
-  specialLend.onclick = specialLendForm;
+  specialLend.onclick = async function (params) {
+    await specialLendForm(true);
+  };
   btnDiv2.appendChild(specialLend);
   upperBar.appendChild(btnDiv2);
 
@@ -1064,7 +987,7 @@ async function specialFunctionalities(){
 
     // collecting table data
     tableData = {};
-    recordData.forEach(([name, category, bookName, bookId, lendDate, returnDate]) => {
+    recordData.forEach(([name, category, userId, bookName, bookId, lendDate, returnDate]) => {
       if (nameCount[name] > 1){
         const groupingKey = name + ' - ' + category;
         if (!tableData[groupingKey]){
@@ -1437,7 +1360,10 @@ async function exportDoc() {
   exportPdfreport.textContent = 'Export entire PDF Report';
   spaceSelect.appendChild(exportPdfreport);
   exportPdfreport.onclick = async function() {
+    const hideLayout = document.querySelector('.layout')
+    hideLayout.style.display = 'none';
     let reportDestination = await eel.report_path()();
+    hideLayout.style.display = 'block';
     await eel.generate_pdf('Whole Report', reportDestination)();
   }
 
@@ -1447,7 +1373,10 @@ async function exportDoc() {
   exportPdfStatus.textContent = 'Export Book Status Report';
   spaceSelect.appendChild(exportPdfStatus);
   exportPdfStatus.onclick = async function() {
+    const hideLayout = document.querySelector('.layout')
+    hideLayout.style.display = 'none';
     let reportDestination = await eel.report_path()();
+    hideLayout.style.display = 'block';
     await eel.generate_pdf('table books status', reportDestination)();
   };
 
@@ -1457,7 +1386,10 @@ async function exportDoc() {
   exportPdfBorrower.textContent = 'Export Borrower Report';
   spaceSelect.appendChild(exportPdfBorrower);
   exportPdfBorrower.onclick = async function() {
+    const hideLayout = document.querySelector('.layout')
+    hideLayout.style.display = 'none';
     let reportDestination = await eel.report_path()();
+    hideLayout.style.display = 'block';
     await eel.generate_pdf('table borrowers', reportDestination)();
   };
 

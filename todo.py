@@ -5,9 +5,50 @@ import os
 from fpdf import FPDF
 import tkinter
 from tkinter import filedialog
-import threading
+import requests
 
 
+version_url = "https://github.com/Shenge-1234/library-manager/raw/refs/heads/main/latest_version"
+
+def check_for_updates():
+  
+  """ on version (1.0.0.0) format first deals with functionalities of software, second deals with UI update
+  , third is conserned with back-end developmant, and last is specific to database migrations."""
+
+  try:
+    response = requests.get(version_url)
+    if response.status_code == 200:
+      latest_version = response.text.strip()
+      with open("current_version.txt", "r") as file:
+        current_version = file.read().strip()
+      if latest_version > current_version:
+        latest_version = latest_version.split('.')
+        current_version = current_version.split('.')
+        return {"latest": latest_version, "current": current_version, "update": True}
+      else:
+        return {"update": False, "msg": "no update availble"}
+    else:
+      return {"msg": "Failed to check for updates. Status code: {}".format(response.status_code),
+              "update": False}
+  except Exception as e:
+    return {"msg": f"An error occurred: {e}", "update": False}
+  
+  
+  def update():
+    try:
+      check = check_for_updates()
+      update_available = check.update
+      
+      # zip update file
+      zip_update_url = ""
+      if update_available:
+        pass
+      else:
+        return update_available.msg
+    except Exception as e:
+      pass
+
+    
 eel.init("frontend")
 
 #retrieve status data
@@ -75,7 +116,7 @@ def book_record():
   book = Tables("Service")
   data = book.read(entity="Book.Name, Book.Sn, Service.Lend_time, Service.Estimated_Return_time", where="Service.Return_time IS NULL", join="Book")
 
-  data1 = book.read(entity="User.Name, User.Category", where="Service.Return_time IS NULL", join="User")
+  data1 = book.read(entity="User.Name, User.Category, User.id", where="Service.Return_time IS NULL", join="User")
   j = 0
   data2 = []
   for i in data:
@@ -180,7 +221,7 @@ def report_path():
   root = tkinter.Tk()
   root.withdraw()  # Hide the root window
   root.attributes('-topmost', True)  # Bring dialog to front
-  file_path = filedialog.askdirectory(title="Choose folder to Save Report")
+  file_path = filedialog.askdirectory(title="Choose folder to Save Report", parent=root)
   root.destroy()
   return file_path
 
@@ -193,7 +234,7 @@ def generate_pdf( query_table:str = None, directory: str = None):
   data["books_by_genre"] = book.read(entity="Genre.Name", count_by="*", groupby="Book.Genre", count=True, join="Genre")
   data['remained'] = book.read(entity='Book.Name', count_by="Book.id", where = 'Available="true"', groupby="Book.Name", count=True)
   data['lended'] = book.read(entity="Book.Name", count_by="Book.Available", where='Book.Available = "false"', groupby="Book.Name" ,count=True)
-  data['borrowe_data'] = service.read(entity="User.Name, User.Category", groupby="Service.User", join="User", count=True)
+  data['borrowe_data'] = service.read(entity="User.Name, User.Category", join="User", where="Service.Return_time is NULL",count=True, groupby="Service.User")
 
   pdf = FPDF()
   pdf.set_auto_page_break(auto=True, margin=15)
@@ -263,8 +304,4 @@ def generate_pdf( query_table:str = None, directory: str = None):
   full_path = os.path.join(directory, "library_report on date.pdf")
   pdf.output(full_path)
   
-
 eel.start("hypertext.html")
-
-
-    

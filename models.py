@@ -54,6 +54,7 @@ cur.execute("CREATE TABLE IF NOT EXISTS Service(" \
 "FOREIGN KEY(Book) REFERENCES Book(Id) ON DELETE CASCADE," \
 "FOREIGN KEY(User) REFERENCES User(Id) ON DELETE CASCADE)")
 
+cur.execute("DROP TABLE Subscription")
 connection.commit()
 connection.close()
 
@@ -96,7 +97,6 @@ class Tables:
             query += f" WHERE {where}"
         if groupby:
             query += f" GROUP BY {groupby}"
-    
     self.cur.execute(query)
 
     return self.cur.fetchall()
