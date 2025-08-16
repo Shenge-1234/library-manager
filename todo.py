@@ -19,7 +19,7 @@ def check_for_updates():
     response = requests.get(version_url)
     if response.status_code == 200:
       latest_version = response.text.strip()
-      with open("current_version.txt", "r") as file:
+      with open("version", "r") as file:
         current_version = file.read().strip()
       if latest_version > current_version:
         latest_version = latest_version.split('.')
@@ -33,20 +33,24 @@ def check_for_updates():
   except Exception as e:
     return {"msg": f"An error occurred: {e}", "update": False}
   
-  
-  def update():
-    try:
-      check = check_for_updates()
-      update_available = check.update
-      
-      # zip update file
-      zip_update_url = ""
-      if update_available:
-        pass
-      else:
-        return update_available.msg
-    except Exception as e:
-      pass
+
+def update():
+    
+  update_files_url = "https://github.com/Shenge-1234/library-manager/archive/refs/heads/main.zip"
+
+  try:
+    check = check_for_updates()
+    update_available = check.update
+
+    if update_available:
+      response = requests.get(update_files_url)
+      if response.status_code == 200:
+        
+
+    else:
+      return update_available.msg
+  except Exception as e:
+    pass
 
     
 eel.init("frontend")
