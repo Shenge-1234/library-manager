@@ -6,6 +6,7 @@ from fpdf import FPDF
 import tkinter
 from tkinter import filedialog
 import requests
+import zipfile
 
 
 version_url = "https://github.com/Shenge-1234/library-manager/raw/refs/heads/main/latest_version"
@@ -45,8 +46,12 @@ def update():
     if update_available:
       response = requests.get(update_files_url)
       if response.status_code == 200:
-        
+        with open("update.zip", "wb") as file: # download the update files
+          file.write(response.content)
 
+        with zipfile.ZipFile("update.zip", "r") as zip_ref: # extract files
+          zip_ref.extractall("update_temp")
+    
     else:
       return update_available.msg
   except Exception as e:
