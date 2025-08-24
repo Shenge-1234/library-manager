@@ -6,59 +6,12 @@ from fpdf import FPDF
 import tkinter
 from tkinter import filedialog
 import requests
-import zipfile
+import shutil
+import sys
 
 
-version_url = "https://github.com/Shenge-1234/library-manager/raw/refs/heads/main/latest_version"
-
-def check_for_updates():
-  
-  """ on version (1.0.0.0) format first deals with functionalities of software, second deals with UI update
-  , third is conserned with back-end developmant, and last is specific to database migrations."""
-
-  try:
-    response = requests.get(version_url)
-    if response.status_code == 200:
-      latest_version = response.text.strip()
-      with open("version", "r") as file:
-        current_version = file.read().strip()
-      if latest_version > current_version:
-        latest_version = latest_version.split('.')
-        current_version = current_version.split('.')
-        return {"latest": latest_version, "current": current_version, "update": True}
-      else:
-        return {"update": False, "msg": "no update availble"}
-    else:
-      return {"msg": "Failed to check for updates. Status code: {}".format(response.status_code),
-              "update": False}
-  except Exception as e:
-    return {"msg": f"An error occurred: {e}", "update": False}
-  
-
-def update():
-    
-  update_files_url = "https://github.com/Shenge-1234/library-manager/archive/refs/heads/main.zip"
-
-  try:
-    check = check_for_updates()
-    update_available = check.update
-
-    if update_available:
-      response = requests.get(update_files_url)
-      if response.status_code == 200:
-        with open("update.zip", "wb") as file: # download the update files
-          file.write(response.content)
-
-        with zipfile.ZipFile("update.zip", "r") as zip_ref: # extract files
-          zip_ref.extractall("update_temp")
-    
-    else:
-      return update_available.msg
-  except Exception as e:
-    pass
-
-    
 eel.init("frontend")
+
 
 #retrieve status data
 @eel.expose
@@ -312,5 +265,71 @@ def generate_pdf( query_table:str = None, directory: str = None):
 
   full_path = os.path.join(directory, "library_report on date.pdf")
   pdf.output(full_path)
+
+# check for new release from my git account 
+def check_for_updates():
   
-eel.start("hypertext.html")
+  """ on version (1.0.0.0) format first deals with functionalities of software, second deals with UI update
+  , third is conserned with back-end developmant, and last is specific to database migrations."""
+
+  version_url = "https://github.com/Shenge-1234/library-manager/raw/refs/heads/main/latest_version"
+  try:
+    response = requests.get(version_url) # get the latest version from the url
+    if response.status_code == 200:
+      latest_version = response.text.strip()
+      with open("version", "r") as file: # reading the current version
+        current_version = file.read().strip()
+
+      if latest_version > current_version:
+        return {"latest": latest_version, "current": current_version, "update": True, 'msg': "Update available"}
+      else:
+        return {"update": False, "msg": "no update availble"}
+    else:
+      return {"msg": "Failed to check for updates. Status code: {}".format(response.status_code),
+              "update": False}
+  except Exception as e:
+    print(f"An error occurred while checking for updates: {e}")
+    return {"msg": f"An error occurred: {e}", "update": False}
+
+# overwrite files
+def update():
+    
+  update_files_url = "https://github.com/Shenge-1234/library-manager/archive/refs/heads/main.zip"
+  try:
+    
+    response = requests.get(update_files_url) # get the update files from the url
+    if response.status_code == 200:
+      with open("update.zip", "wb") as file: # download the update files
+        file.write(response.content)
+
+      shutil.unpack_archive(filename = "update.zip", extract_dir="update_temp", format="zip") # extract files in update_temp dir
+      update_files_lst = [fl for fl in os.listdir("update_temp") if not fl.endswith(".db")] # remove the database file from the update files list
+      for update in update_files_lst:
+        new = os.path.join("update_temp", update)
+        old = os.path.join(".", update) 
+        if os.path.isdir(new): # check if there there is dir in update with the same name as old the delete it
+          if os.path.exists(old):
+            shutil.rmtree(old)
+        else: # if it is not folder overwrite
+          shutil.copy2(src=new, dst=old)
+      
+      os.remove("update.zip") # remove the downloaded zip file
+      shutil.rmtree("update_temp") # remove the extracted files
+      os.execv(sys.executable, ["python"] + sys.argv) # restart the application
+    else:
+      return "Failed to download update files. Status code: {}".format(response.status_code)
+  except Exception as e:
+    return f"An error occurred while updating: {e}"
+
+# the main function  
+def main():
+  check = check_for_updates()
+  if check.get("update"):
+    update()
+  else:
+    eel.start("hypertext.html")
+
+if __name__ == "__main__":
+  main()
+
+

@@ -54,7 +54,6 @@ cur.execute("CREATE TABLE IF NOT EXISTS Service(" \
 "FOREIGN KEY(Book) REFERENCES Book(Id) ON DELETE CASCADE," \
 "FOREIGN KEY(User) REFERENCES User(Id) ON DELETE CASCADE)")
 
-cur.execute("DROP TABLE Subscription")
 connection.commit()
 connection.close()
 
@@ -118,6 +117,7 @@ class Tables:
     self.connection.close()
 
   def exist(self, **kwarg):
+     # This method Return True if a matching record exists, otherwise False
      where_clause = ", ".join(f"{k}= ?" for k in kwarg.keys())
      values = tuple(kwarg.values())
      self.cur.execute(f"SELECT EXISTS(SELECT 1 FROM {self.table} WHERE {where_clause})", values)

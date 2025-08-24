@@ -12,7 +12,7 @@ window.onload = async() => {
   async function currentStatus(){
     let statusData = await eel.status()();
 
-    /*this fxn should return data like:
+    /*this fxn return data object like this:
     book name: .......
     genre: .....
     total: ....
@@ -67,6 +67,7 @@ window.onload = async() => {
 
     topEl.appendChild(upperBar);
 
+    // main content layout
     const status = document.querySelector('.book-grid');
     status.innerHTML = ''; // clear previous content
     status.style.display = 'grid';
@@ -75,15 +76,14 @@ window.onload = async() => {
     status.style.paddingLeft = '13px';
     status.style.paddingTop = '50px';
     status.style.gridTemplateColumns = 'repeat(4, 300px)';
+    status.style.gridTemplateRows = 'repeat(4, 400px)'
     
-    // retrieving list of turples in status data
-    const collectedBooks = statusData.total; 
+    const collectedBooks = statusData.total; // retrieving list of turples in status data from python fxn
     
     const formPopup = document.querySelector('.form-popup'); // the form
 
-    if (collectedBooks.length == 0){
+    if (collectedBooks.length == 0){ // if there is no book registered, display a welcome message
 
-      // if there is no book registered, display a welcome message
       status.style.display = 'block';
       status.innerHTML = ''; // clear previous content
 
@@ -91,7 +91,7 @@ window.onload = async() => {
       welcomeP.textContent = 'Welcome to Library Manager.';
       status.appendChild(welcomeP);
       
-    }else{
+    }else{ // books available then 
       const sortedData = {};
       collectedBooks.forEach(collectedBooks => {
         
@@ -110,7 +110,7 @@ window.onload = async() => {
         let availableData = statusData.available_N;
         let availableNumber = 0;
         if(availableData !== 0 && availableData !== null && availableData !== undefined){
-          // if availableData is not null or undefined, find the available number
+          // find the available number of books to display
           availableData.forEach(data =>{
             if (data[0] == collectedBooks[0]){
               availableNumber = data[1];
@@ -129,8 +129,8 @@ window.onload = async() => {
           
         let bookItem = document.createElement('button');
         bookItem.className = 'book-container';
-        bookItem.style.display = 'flex';
-        bookItem.style.flexDirection = 'column';
+        bookItem.style.display = 'grid';
+        bookItem.style.gridTemplateRows = "1fr 1fr"
         bookItem.style.backgroundColor = 'white';
         bookItem.style.borderRadius = '10px';
         bookItem.style.padding = '0px';
@@ -138,12 +138,20 @@ window.onload = async() => {
         //image div
         const imgDiv = document.createElement('div');
         imgDiv.className = 'book-image-container';
+        imgDiv.style.overflow = 'hidden';
         const imgEl = document.createElement('img');
         imgEl.src = sortedData.img;
         imgEl.style.width = '100%';
-        imgEl.style.height = '150';
+        imgEl.style.height = '100%';
+        imgEl.style.objectFit = 'cover';
         imgDiv.appendChild(imgEl);
         bookItem.appendChild(imgDiv);
+        
+        // details container div
+        const detailsDiv = document.createElement('div');
+        detailsDiv.className = "bk-details-div";
+        bookItem.appendChild(detailsDiv);
+
 
         const nameDiv = document.createElement('div');
         nameDiv.className = 'book-name';
@@ -151,7 +159,7 @@ window.onload = async() => {
         const nameP = document.createElement('p');
         nameP.textContent = 'Book name: ' + sortedData.name;
         nameDiv.appendChild(nameP);
-        bookItem.appendChild(nameDiv);
+        detailsDiv.appendChild(nameDiv);
         
         const genreDiv = document.createElement('div');
         genreDiv.className = 'book-genre';
@@ -159,7 +167,7 @@ window.onload = async() => {
         const genreP = document.createElement('p');
         genreP.textContent = 'Genre: ' + sortedData.genre;
         genreDiv.appendChild(genreP);
-        bookItem.appendChild(genreDiv);
+        detailsDiv.appendChild(genreDiv);
 
         const totalDiv = document.createElement('div');
         totalDiv.className = 'book-total';
@@ -167,7 +175,7 @@ window.onload = async() => {
         const totalP = document.createElement('p');
         totalP.textContent = 'Total: ' + sortedData.total;
         totalDiv.appendChild(totalP);  
-        bookItem.appendChild(totalDiv);
+        detailsDiv.appendChild(totalDiv);
 
         const availableDiv = document.createElement('div');
         availableDiv.className = 'book-available';
@@ -175,7 +183,7 @@ window.onload = async() => {
         const availableP = document.createElement('p');
         availableP.textContent = 'Available Books: ' + sortedData.available;
         availableDiv.appendChild(availableP);
-        bookItem.appendChild(availableDiv);
+        detailsDiv.appendChild(availableDiv);
         
         const inserviceDiv = document.createElement('div');
         inserviceDiv.className = 'book-inservice';
@@ -183,7 +191,7 @@ window.onload = async() => {
         const inServiceP = document.createElement('p');
         inServiceP.textContent = 'In-Service Books: ' + sortedData.inservice;
         inserviceDiv.appendChild(inServiceP);
-        bookItem.appendChild(inserviceDiv);
+        detailsDiv.appendChild(inserviceDiv);
       
         // append the book item to the status container
         status.appendChild(bookItem);  
