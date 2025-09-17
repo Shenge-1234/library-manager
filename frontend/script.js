@@ -1,3 +1,9 @@
+async function pyErrorDisplay(result) {
+  if(typeof result === 'string' && result.startsWith('Error:')){
+    alert(result);
+  }
+}
+
 function areIdentical(arr1, arr2){
   // checks whether arrays are identical
   if (arr1.length == arr2.length){
@@ -5,13 +11,206 @@ function areIdentical(arr1, arr2){
   };
 };
 
-window.onload = async() => {
-  currentStatus();  
+async function lend(multipleLend) {
+  
+  // form
+  const formPopup = document.querySelector('.form-popup');
+  formPopup.innerHTML = ''; // clear previous content
+  formPopup.style.display = 'block';
+
+  const formEl = document.createElement('form');
+  
+  const statusData = await eel.status()();
+  pyErrorDisplay(statusData); //display error if any
+
+  // collect already borrowers in array
+    let borrowersRecords = await eel.book_record()(); //e.g:[('Bonte', '3', 5,"Male", 'S6 computer science', 'gsm/sc/1/20', '2025-08-25 16:37:41', '2025-09-01', 1)]
+    pyErrorDisplay(borrowersRecords); //display error if any
+
+    let borrowers = [];
+    let booksBorrowed = []
+    for (let borrowersRecord of borrowersRecords){
+      if (!borrowers.includes(borrowersRecord[2].toString())){ //make sure no duplicate borrower id in array
+        borrowers.push(borrowersRecord[2].toString());  // get borrower id(user)
+      } 
+      
+      if(!booksBorrowed.includes(booksBorrowed[5])){
+        booksBorrowed.push(borrowersRecord[5]); // put in borrowed books sn
+      }
+    };
+
+  // sn
+  const snBarLabel = document.createElement('label');
+  const snBar = document.createElement('select');
+  snBarLabel.textContent = 'Book Identification: ';
+  snBar.name = 'Book';
+  snBar.placeholder = 'Select Book Identification(SN)';
+  snBar.required = true; // make it required
+
+  // sn options
+  const bookItems = statusData.all_table; // getting all table data like: [(book_pk, book_id, book_name, author, published_time, isavailable, genre, entry_time, cover, genre_pk, genre_name)]
+  
+  const neededData = {};
+
+  // option placeholder
+  const placeholder = document.createElement('option');
+  placeholder.value = '';
+  placeholder.textContent = 'Select Book Identification(SN)';
+  placeholder.disabled = true;
+  placeholder.selected = true;
+  snBar.appendChild(placeholder);
+
+  // loop through bookItems to create options
+  bookItems.forEach(bookItem => {
+    if (bookItem !== null && bookItem !== undefined) {
+      neededData['id'] = bookItem[0];
+      neededData['sn'] = bookItem[1];
+      neededData['name'] = bookItem[2];
+      
+      if (booksBorrowed.includes(neededData['sn'])){
+        const option = document.createElement('option');
+        option.textContent = neededData.sn + ' (' + neededData.name+ ')';
+        option.disabled = true; // disable option if already borrowed
+        snBar.appendChild(option);
+      }else{
+        const option = document.createElement('option');
+        option.textContent = neededData.sn + ' (' + neededData.name+ ')';
+        option.value = neededData.id;
+        snBar.appendChild(option);
+      }
+    }else{
+      const option = document.createElement('option');
+      option.textContent = 'No book registered';
+      option.value = '';
+      option.disabled = true; // disable the option if no books are registered
+      option.selected = false; // make it the default selected option
+      snBar.appendChild(option);
+    }
+  });
+  snBarLabel.prepend(snBar);
+  formEl.appendChild(snBarLabel);
+  formEl.appendChild(snBar);
+  formEl.appendChild(document.createElement('br'));
+  
+  // borrower
+  const borrowerBarLabel = document.createElement('label');
+  const borrowerBar = document.createElement('select');
+  borrowerBar.name = 'User';
+  borrowerBarLabel.textContent = 'Select Borrower: ';
+  borrowerBar.required = true; // make it required
+  
+  // borrower placeholder options
+  const placeholderBorrower = document.createElement('option');
+  placeholderBorrower.value = '';
+  placeholderBorrower.textContent = 'Select name';
+  placeholderBorrower.disabled = true;
+  placeholderBorrower.selected = true;
+  borrowerBar.appendChild(placeholderBorrower);
+  
+  // loop through userData to create options
+  const userData = await eel.get_users()(); //e.g:[(1, '3', 'bonte', 'Male', 3, 'Staff'), (2, '1', 'Fiona', 'Female', 1, 'Student')]
+  pyErrorDisplay(userData); //display error if any
+  if (userData){
+    userData.forEach(user => {
+    
+      const option = document.createElement('option');
+      option.textContent = user[2]; //user name
+      option.value = user[0].toString(); // user[0] is the user ID
+      borrowerBar.appendChild(option);
+    });
+  }else{
+    const option = document.createElement('option');
+    option.textContent = 'No user registered';
+    option.value = '';
+    option.disabled = true; // disable the option
+    option.selected = false; // make it the default selected option
+    borrowerBar.appendChild(option);
+  }
+  
+  borrowerBarLabel.prepend(borrowerBar);
+  formEl.appendChild(borrowerBarLabel);
+  formEl.appendChild(borrowerBar);
+  formEl.appendChild(document.createElement('br'));
+  
+  //return time
+  const returnTimeLabel = document.createElement('label');
+  const returnTime = document.createElement('input');
+  returnTimeLabel.textContent = 'Enter expected return Date: ';
+  returnTime.type = 'date';
+  returnTime.name = 'Estimated_return_time';
+  returnTime.placeholder = 'Expect return Date';
+  returnTime.required = true; // make it required
+  returnTimeLabel.prepend(returnTime);
+  formEl.appendChild(returnTimeLabel);
+  formEl.appendChild(returnTime);
+  formEl.appendChild(document.createElement('br'));
+
+  //submit
+  const subBut = document.createElement('button');
+  subBut.className = 'btn';
+  subBut.type = 'submit';
+  subBut.textContent = 'Lend';
+  formEl.appendChild(subBut);
+  
+  //close button
+  const closeButton = document.createElement('button');
+  closeButton.className = 'btn';
+  closeButton.textContent = 'Close';
+  closeButton.type = 'button';
+  closeButton.onclick = function() {
+    formPopup.style.display = 'none';
+    formPopup.innerHTML = ''; // clear the form when closed
   };
 
-  async function currentStatus(){
-    let statusData = await eel.status()();
+  formEl.appendChild(closeButton);
+  formPopup.appendChild(formEl);
 
+  formEl.onsubmit = async function(e){
+    e.preventDefault();
+    const enteredLendData = new FormData(formEl);
+    const lendFormData = {};
+    enteredLendData.forEach((value, key) =>{
+      lendFormData[key] = value;
+    });
+
+    const hasBorrowed = borrowers.includes(lendFormData.User);
+
+    if (multipleLend){ // on multiple lend, lend regardless of previous borrow
+      let updateDatabase = await eel.save_lend(lendFormData)();
+      pyErrorDisplay(updateDatabase); //display error if any
+      alert("Book lent successfully");
+      specialLendForm();
+      formEl.reset();
+      specialFunctionalities();
+
+    }else{
+      if (hasBorrowed){  // check if user already borrowed
+        alert("User arleady borrowed. use special lend instead");
+        formEl.reset();
+      }else{
+        let updateDatabase = await eel.save_lend(lendFormData)();
+        pyErrorDisplay(updateDatabase); //display error if any
+        alert("Book lent successfully");
+        currentStatus();
+        lend();
+      }
+    }
+  }
+}
+
+function showOverlay() {
+  document.getElementById("overlayLoader").style.display = "flex";
+}
+
+function hideOverlay() {
+  document.getElementById("overlayLoader").style.display = "none";
+}
+
+window.onload = async() => {
+  currentStatus();  
+};
+
+  async function currentStatus(){
     /*this fxn return data object like this:
     book name: .......
     genre: .....
@@ -19,6 +218,8 @@ window.onload = async() => {
     available: .....
     in-service book: ....
     */
+   let statusData = await eel.status()();
+   pyErrorDisplay(statusData); //display error if any
 
     // upper bar
     const topEl = document.querySelector('.top-bar');
@@ -49,8 +250,8 @@ window.onload = async() => {
     const lendBookBtn = document.createElement('button');
     lendBookBtn.className = 'upper-bar-btn';
     lendBookBtn.textContent = 'Lend Book';
-    lendBookBtn.onclick = async function(params) {
-      lendBook(false); // single lend
+    lendBookBtn.onclick = async function(params){
+      lendBook(); 
     } 
     btnDiv2.appendChild(lendBookBtn);
     upperBar.appendChild(btnDiv2);
@@ -76,14 +277,17 @@ window.onload = async() => {
     status.style.paddingLeft = '13px';
     status.style.paddingTop = '50px';
     status.style.gridTemplateColumns = 'repeat(4, 300px)';
-    status.style.gridTemplateRows = 'repeat(4, 400px)'
+    status.style.gridTemplateRows = 'repeat(4, 400px)';
+    status.style.flexDirection = "";
+    status.style.justifyContent = "";
+    status.style.alignItems = '';
     
     const collectedBooks = statusData.total; // retrieving list of turples in status data from python fxn
     
     const formPopup = document.querySelector('.form-popup'); // the form
-
+    showOverlay();
     if (collectedBooks.length == 0){ // if there is no book registered, display a welcome message
-
+      hideOverlay();
       status.style.display = 'block';
       status.innerHTML = ''; // clear previous content
 
@@ -94,7 +298,7 @@ window.onload = async() => {
     }else{ // books available then 
       const sortedData = {};
       collectedBooks.forEach(collectedBooks => {
-        
+        hideOverlay();
         sortedData.name = collectedBooks[0];
         
         let allTableData = statusData.all_table;
@@ -152,7 +356,6 @@ window.onload = async() => {
         detailsDiv.className = "bk-details-div";
         bookItem.appendChild(detailsDiv);
 
-
         const nameDiv = document.createElement('div');
         nameDiv.className = 'book-name';
         //name 
@@ -197,7 +400,7 @@ window.onload = async() => {
         status.appendChild(bookItem);  
         
         //clicking book functionalities
-        bookItem.onclick = async function () {
+        bookItem.addEventListener("dblclick", async() => { // listern for double clicking img
           formPopup.innerHTML = '';
           formPopup.style.display = 'block';
           const formEl = document.createElement('form');
@@ -206,18 +409,71 @@ window.onload = async() => {
           imgLabel.textContent = 'Change image ';
           const imgBar = document.createElement('input');
           imgBar.type = 'file';
+          imgLabel.appendChild(document.createElement('br'))
           formEl.appendChild(imgLabel);
           formEl.appendChild(imgBar);
           formEl.appendChild(document.createElement('br'));
-          
-          const dltBtn = document.createElement('button');
+
+          let theName = bookItem.querySelector('.book-name p').innerText.split(':')[1].trim(); // taking the name of book
+          //change image btn
+          const changeImgBtn = document.createElement('button');
+          changeImgBtn.type = "submit";
+          changeImgBtn.textContent = 'Apply';
+          formEl.appendChild(changeImgBtn);
+          formEl.onsubmit = async function(e){
+            e.preventDefault();
+            let base64 = null;
+            if(imgBar.files[0] !== undefined){
+              const reader = new FileReader(); // file reader to convert image data into bs64
+              reader.onload = async function (e) {
+                
+                base64 = e.target.result; //get bs4 data(image)
+                let imgPath = await eel.upload_img(base64, imgBar.files[0].name, theName)(); //send into py
+                pyErrorDisplay(imgPath); // display error if any
+                showOverlay();
+                let update = await eel.update_book(theName, imgPath)();
+                pyErrorDisplay(update); // display error if any
+                hideOverlay();
+                await currentStatus();
+                formPopup.style.display = 'none';
+                alert('Image updated successfully');
+              }
+              reader.readAsDataURL(imgBar.files[0]);
+            }
+          }
+
+          //alert user if deleting already inservice book
+          const dltBtn = document.createElement('button');  //creating delete button
           dltBtn.textContent = 'Remove this book from system';
+          
+          // take in lent books in inServiceBooks
+          let record = await eel.book_record()(); //e.g:[('Bonte', '3', 5, "Male", 'S6 computer science', 'gsm/sc/1/20', '2025-08-25 16:37:41', '2025-09-01', 1)]
+          pyErrorDisplay(record); //display error if any
+          let inServiceBooks = [];
+          record.forEach(data =>{
+            if (!inServiceBooks.includes(data[4])){
+              inServiceBooks.push(data[4]);
+            };
+          });
+            
           dltBtn.onclick = async function () {
-            let theName = bookItem.querySelector('.book-name p').innerText.split(':')[1].trim();
-            console.log(theName)
-            let msg = await eel.remove_book(theName)();
-            console.log(msg);
+            if (inServiceBooks.includes(theName)){
+              alert('Some of this book are not returned yet.');
+            }else{
+              let acknowledge = confirm("Are you sure to permanently delete "+ theName +" books? This action cannot be undone.");
+              if (acknowledge){
+                showOverlay();
+                let msg = await eel.remove_book(theName)();
+                pyErrorDisplay(msg); // display error if any
+                hideOverlay();
+                reload = await currentStatus();
+                pyErrorDisplay(reload); // display error if any
+                formPopup.style.display = 'none';
+                alert(msg);
+              }
+            } 
           };
+
           formEl.appendChild(dltBtn);
           formEl.appendChild(document.createElement('br'));
 
@@ -228,9 +484,8 @@ window.onload = async() => {
           }
 
           formEl.appendChild(closeBtn);
-          formPopup.appendChild(formEl);
-          
-        };
+          formPopup.appendChild(formEl);  
+        });
       });
 
       // search functionalities
@@ -256,7 +511,7 @@ window.onload = async() => {
         });
       });
     };
-  };
+};
 
   function bookRegister(){
     
@@ -341,6 +596,7 @@ window.onload = async() => {
     //genre
     const genreBar = document.createElement('select');
     genreBar.name = 'Genre';
+    genreBar.required = true; // make it required
     
     const genreLabel = document.createElement('label');
     genreLabel.textContent = 'Genre ';
@@ -399,34 +655,39 @@ window.onload = async() => {
     form.onsubmit = async function(e) {
       e.preventDefault();
 
-     const enteredData = new FormData(form);
-     const formData = {};
-     let imgFile = null;
-     enteredData.forEach(async(value, key) =>{
+      // validating input data
+      const enteredData = new FormData(form);
+      const formData = {};
+      let imgFile = null;
+      enteredData.forEach(async(value, key) =>{
         if (key == 'Genre'){
-          formData[key] = parseInt(value);
-        }else if(key == 'Cover'){
-          imgFile = value;
+          formData[key] = parseInt(value); // change into int
+        }else if(key == 'Cover'){ 
+          imgFile = value; // take image data into imgFile
         }else{
           formData[key] = value;
         };
       });
       let base64 = null;
       if(imgFile.size !== 0){
-        const reader = new FileReader();
+        const reader = new FileReader(); // file reader to convert image data into bs64
         reader.onload = async function (e) {
           
           base64 = e.target.result; //get bs4 data(image)
-          formData['Cover'] = await eel.upload_img(base64, imgFile.name, formData['Name'])(); //send into py
-          await eel.save_data(formData)();
+          let path = await eel.upload_img(base64, imgFile.name, formData['Name'])(); //send into py
+          pyErrorDisplay(path); // display error if any
+          formData['Cover'] = path;
+          let sv = await eel.save_data(formData)();
+          pyErrorDisplay(sv); // display error if any
           await currentStatus();
           form.reset();
         }
         reader.readAsDataURL(imgFile);
       }else{
-        formData['Cover'] = await eel.upload_img(null, null, formData['Name'])(); // use already obtained cover
-        console.log(formData['Cover']);
-        await eel.save_data(formData)();
+        let defaultpath = await eel.upload_img(null, null, formData['Name'])(); // use already obtained cover
+        formData['Cover'] = defaultpath;
+        let sv = await eel.save_data(formData)();
+        pyErrorDisplay(sv); // display error if any
         await currentStatus();
         form.reset();
       };
@@ -446,171 +707,13 @@ window.onload = async() => {
     // append form to the status element
 
     statusElement.appendChild(form);
-  };
+};
 
-  async function lendBook(multipleLend){
-
-    // collect already borrowers in array
-    let borrowersRecords = await eel.book_record()();
-    let borrowers = [];
-    for (let borrowersRecord of borrowersRecords){
-      borrowers.push(borrowersRecord[8]); // get borrower id(user)
-    };
-
-    // form
-    const formPopup = document.querySelector('.form-popup');
-    formPopup.innerHTML = ''; // clear previous content
-    formPopup.style.display = 'block';
-
-    const formEl = document.createElement('form');
+  async function lendBook(){
     
-    const statusData = await eel.status()();
+    await lend(multipleLend=false);
+};
 
-    // sn
-    const snBarLabel = document.createElement('label');
-    const snBar = document.createElement('select');
-    snBarLabel.textContent = 'Book Identification: ';
-    snBar.name = 'Book';
-    snBar.placeholder = 'Select Book Identification(SN)';
-    snBar.required = true; // make it required
-
-    // sn options
-    const bookItems = statusData.all_table;
-    const neededData = {};
-
-    // option placeholder
-    const placeholder = document.createElement('option');
-    placeholder.value = '';
-    placeholder.textContent = 'Select Book Identification(SN)';
-    placeholder.disabled = true;
-    placeholder.selected = true;
-    snBar.appendChild(placeholder);
-
-    // loop through bookItems to create options
-    bookItems.forEach(bookItem => {
-      if (bookItem !== null && bookItem !== undefined) {
-        neededData['id'] = bookItem[0];
-        neededData['sn'] = bookItem[1];
-        neededData['name'] = bookItem[2];
-
-        const option = document.createElement('option');
-        option.textContent = neededData.sn + ' (' + neededData.name+ ')';
-        option.value = neededData.id;
-        snBar.appendChild(option);
-      }else{
-        const option = document.createElement('option');
-        option.textContent = 'No book registered';
-        option.value = '';
-        option.disabled = true; // disable the option if no books are registered
-        option.selected = false; // make it the default selected option
-        snBar.appendChild(option);
-      }
-    });
-
-    snBarLabel.prepend(snBar);
-    formEl.appendChild(snBarLabel);
-    formEl.appendChild(snBar);
-    formEl.appendChild(document.createElement('br'));
-    
-    // borrower
-    const borrowerBarLabel = document.createElement('label');
-    const borrowerBar = document.createElement('select');
-    borrowerBar.name = 'User ';
-    borrowerBarLabel.textContent = 'Select Borrower: ';
-    borrowerBar.required = true; // make it required
-    
-    // borrower placeholder options
-    const placeholderBorrower = document.createElement('option');
-    placeholderBorrower.value = '';
-    placeholderBorrower.textContent = 'Select name';
-    placeholderBorrower.disabled = true;
-    placeholderBorrower.selected = true;
-    borrowerBar.appendChild(placeholderBorrower);
-    
-    // loop through userData to create options
-    const userData = await eel.get_users()();
-    userData.forEach(user => {
-      if (user !== null && user !== undefined) {
-        const option = document.createElement('option');
-        option.textContent = user[2];
-        option.value = user[0]; // assuming user[0] is the user ID
-        borrowerBar.appendChild(option);
-      }else{
-        const option = document.createElement('option');
-        option.textContent = 'No user registered';
-        option.value = '';
-        option.disabled = true; // disable the option if no users are registered
-        option.selected = false; // make it the default selected option
-        borrowerBar.appendChild(option);
-      };
-    });
-    
-    borrowerBarLabel.prepend(borrowerBar);
-    formEl.appendChild(borrowerBarLabel);
-    formEl.appendChild(borrowerBar);
-    formEl.appendChild(document.createElement('br'));
-    
-    //return time
-    const returnTimeLabel = document.createElement('label');
-    const returnTime = document.createElement('input');
-    returnTimeLabel.textContent = 'Enter expected return Date: ';
-    returnTime.type = 'date';
-    returnTime.name = 'Estimated_return_time';
-    returnTime.placeholder = 'Expect return Date';
-    returnTime.required = true; // make it required
-    returnTimeLabel.prepend(returnTime);
-    formEl.appendChild(returnTimeLabel);
-    formEl.appendChild(returnTime);
-    formEl.appendChild(document.createElement('br'));
-
-    //submit
-    const subBut = document.createElement('button');
-    subBut.className = 'btn';
-    subBut.type = 'submit';
-    subBut.textContent = 'Lend';
-    formEl.appendChild(subBut);
-    
-    //close button
-    const closeButton = document.createElement('button');
-    closeButton.className = 'btn';
-    closeButton.textContent = 'Close';
-    closeButton.type = 'button';
-    closeButton.onclick = function() {
-      formPopup.style.display = 'none';
-      formPopup.innerHTML = ''; // clear the form when closed
-    };
-
-    formEl.appendChild(closeButton);
-    formPopup.appendChild(formEl);
-
-    formEl.onsubmit = async function(e){
-      e.preventDefault();
-
-      const enteredLendData = new FormData(formEl);
-      const lendFormData = {};
-      enteredLendData.forEach((value, key) =>{
-        lendFormData[key] = value;
-      });
-      if (multipleLend){
-
-        let lend = await eel.save_lend(lendFormData)();
-        currentStatus();
-        formEl.reset();
-      }else{
-        // check if he already borrowed
-        const hasBorrowed = borrowers.includes(lendFormData.user)
-        if (hasBorrowed){
-          alert("User areldy borrowed. use special lend instead")
-          formEl.reset()
-        }else{
-          let lend = await eel.save_lend(lendFormData)();
-          currentStatus();
-          formEl.reset();
-        }
-      }
-    };
-  };
-  
   async function returnBook(){
     const formPopup = document.querySelector('.form-popup');
     formPopup.innerHTML = ''; // clear previous content
@@ -633,15 +736,20 @@ window.onload = async() => {
     placeholder.selected = true;
     snBar.appendChild(placeholder);
 
-    // get the list of lent books
-    const lentBooks = await eel.get_lent_books()();
+    // get the list of lent books details
+    record = await eel.book_record()(); // e.g:[('Bonte', '3', 5, 'Male', 'S6 computer science', 'gsm/sc/1/20', '2025-08-25 16:37:41', '2025-09-01', 1)]
+    pyErrorDisplay(record); //display error if any
+    const lentBooksDetails = [];
+    for (const i of record){
+      lentBooksDetails.push([i[5], i[4], i[8]]) // [book sn, book name, book id] 
+    }   
 
     // loop through lentBooks to create options
-    lentBooks.forEach(lentBook => {
-      if (lentBook !== null && lentBook !== undefined) {
+    lentBooksDetails.forEach(lentBook => {
+      if (lentBooksDetails !== null && lentBooksDetails !== undefined) {
         const option = document.createElement('option');
-        option.textContent = lentBook[1] + ' (' + lentBook[2] + ')'; // assuming lentBook[1] is the sn and lentBook[2] is the name
-        option.value = lentBook[0]; // assuming lentBook[0] is the book ID
+        option.textContent = lentBook[0] + ' (' + lentBook[1] + ')'; // assuming lentBook[0] is the sn and lentBook[1] is the name
+        option.value = lentBook[2]; // assuming lentBook[2] is the book ID
         snBar.appendChild(option);
       }else{
         const option = document.createElement('option');
@@ -703,7 +811,6 @@ window.onload = async() => {
 
     // append form to the formPopup
     formEl.appendChild(closeButton);
-
     formPopup.appendChild(formEl);
 
     formEl.onsubmit = async function(e){
@@ -715,116 +822,146 @@ window.onload = async() => {
         returnFormData[key] = value;
       });
       let returnedBook = await eel.save_return(returnFormData)();
-      currentStatus();
-      formEl.reset();
-    };
-  };
-
-  function registerUser(){
-    const formPopup = document.querySelector('.form-popup');
-    formPopup.innerHTML = ''; // clear previous content
-    formPopup.style.display = 'block';
-
-    const formEl = document.createElement('form');
-
-    //categoty
-    const categoryLabel = document.createElement('label');
-    const categoryBar = document.createElement('select');
-    categoryBar.name = 'Category';
-    categoryLabel.textContent = 'Category ';
-    categoryBar.required = true; // make it required
-    
-    const placeholder = document.createElement('option');
-    placeholder.value = '';
-    placeholder.textContent = 'Select category';
-    placeholder.disabled = true;
-    placeholder.selected = true;  
-    categoryBar.appendChild(placeholder);
-    
-    const categoryValues = [{text: 'Student', value: 1}, {text: 'Teacher', value: 2}, {text: 'Staff', value: 3}];
-    categoryValues.forEach(categoryValues => {
-      const option = document.createElement('option');
-      option.textContent = categoryValues.text;
-      option.value = categoryValues.value;
-      categoryBar.appendChild(option);
-    });
-  
-    categoryLabel.prepend(categoryBar);
-    formEl.appendChild(categoryLabel);
-    formEl.appendChild(categoryBar);
-    formEl.appendChild(document.createElement('br'));
-
-    //name
-    const nameLabel = document.createElement('label');
-    const nameBar = document.createElement('input');
-    nameBar.type = 'text';
-    nameBar.name = 'Name';
-    nameBar.placeholder = 'Enter Name';
-    nameBar.required = true; // make it required
-    nameLabel.textContent = 'Name ';
-    nameLabel.prepend(nameBar);
-    formEl.appendChild(nameLabel);
-    formEl.appendChild(nameBar);
-    formEl.appendChild(document.createElement('br'));
-
-    //gender
-    const genderLabel = document.createElement('label');
-    genderLabel.textContent = 'Click on gender ';
-    formEl.appendChild(genderLabel);
-
-    radioValues = [{label:'Male', value:'Male'}, {label:'Female', value:'Female'}] 
-    radioValues.forEach(radioValues => {
-      const radioLabel = document.createElement('label');
-      const genderBar = document.createElement('input');
-      genderBar.type = 'radio';
-      genderBar.name = 'Gender';
-      genderBar.required = true; // make it required
-      genderBar.value = radioValues.value;
-      
-      radioLabel.textContent = ' ' + radioValues.label;
-      radioLabel.prepend(genderBar);
-      formEl.appendChild(radioLabel);
-      formEl.appendChild(genderBar);
-    });
-    formEl.appendChild(document.createElement('br'));
-    
-    //submit
-    const subBut = document.createElement('button');
-    subBut.className = 'btn';
-    subBut.type = 'submit';
-    subBut.textContent = 'Register User';
-    formEl.appendChild(subBut);
-
-    // close button
-    const closeButton = document.createElement('button');
-    closeButton.className = 'btn';
-    closeButton.textContent = 'Close';
-    closeButton.type = 'button';
-    closeButton.onclick = function() {
-      formPopup.style.display = 'none';
+      pyErrorDisplay(returnedBook); //display error if any
+      alert("Book returned successfully");
+      formPopup.style.display = 'none'; // dismiss form
       formPopup.innerHTML = ''; // clear the form when closed
+      await
+      currentStatus();
+      returnBook();
     };
-    // append close button to the form
-    formEl.appendChild(closeButton);
+};
 
-    formPopup.appendChild(formEl);
+function registerUser(){
+  const formPopup = document.querySelector('.form-popup');
+  formPopup.innerHTML = ''; // clear previous content
+  formPopup.style.display = 'block';
+
+  const formEl = document.createElement('form');
+
+  //categoty
+  const categoryLabel = document.createElement('label');
+  const categoryBar = document.createElement('select');
+  categoryBar.name = 'Category';
+  categoryLabel.textContent = 'Category ';
+  categoryBar.required = true; // make it required
+  
+  const placeholder = document.createElement('option');
+  placeholder.value = '';
+  placeholder.textContent = 'Select category';
+  placeholder.disabled = true;
+  placeholder.selected = true;  
+  categoryBar.appendChild(placeholder);
+  
+  const categoryValues = [{text: 'Student', value: 1}, {text: 'Teacher', value: 2}, {text: 'Staff', value: 3}, {text: 'Other', value: 4}];
+  categoryValues.forEach(categoryValues => {
+    const option = document.createElement('option');
+    option.textContent = categoryValues.text;
+    option.value = categoryValues.value;
+    categoryBar.appendChild(option);
+  });
+
+  categoryLabel.prepend(categoryBar);
+  formEl.appendChild(categoryLabel);
+  formEl.appendChild(categoryBar);
+  formEl.appendChild(document.createElement('br'));
+
+  //name
+  const nameLabel = document.createElement('label');
+  const nameBar = document.createElement('input');
+  nameBar.type = 'text';
+  nameBar.name = 'Name';
+  nameBar.placeholder = 'Enter Name';
+  nameBar.required = true; // make it required
+  nameLabel.textContent = 'Name ';
+  nameLabel.prepend(nameBar);
+  formEl.appendChild(nameLabel);
+  formEl.appendChild(nameBar);
+  formEl.appendChild(document.createElement('br'));
+
+  //gender
+  const genderLabel = document.createElement('label');
+  genderLabel.textContent = 'Click on gender ';
+  formEl.appendChild(genderLabel);
+
+  radioValues = [{label:'Male', value:'Male'}, {label:'Female', value:'Female'}] 
+  radioValues.forEach(radioValues => {
+    const radioLabel = document.createElement('label');
+    const genderBar = document.createElement('input');
+    genderBar.type = 'radio';
+    genderBar.name = 'Gender';
+    genderBar.required = true; // make it required
+    genderBar.value = radioValues.value;
     
-    formEl.onsubmit = async function(e){
-      e.preventDefault();
+    radioLabel.textContent = ' ' + radioValues.label;
+    radioLabel.prepend(genderBar);
+    formEl.appendChild(radioLabel);
+    formEl.appendChild(genderBar);
+  });
+  formEl.appendChild(document.createElement('br'));
+  
+  // phone
+  const phoneLabel = document.createElement('label');
+  const phoneBar = document.createElement('input');
+  phoneBar.type = 'text';
+  phoneBar.name = 'Phone';
+  phoneBar.placeholder = 'Enter Phone Number';
+  phoneBar.required = true;
+  phoneLabel.textContent = 'Phone ';
+  phoneLabel.prepend(phoneBar);
+  formEl.appendChild(phoneLabel);
+  formEl.appendChild(phoneBar);
+  formEl.appendChild(document.createElement('br'));
 
-      const enteredUserData = new FormData(formEl);
-      const userFormData = {};
-      enteredUserData.forEach((value, key) =>{
-        userFormData[key] = value;
-      });
+  //submit
+  const subBut = document.createElement('button');
+  subBut.className = 'btn';
+  subBut.type = 'submit';
+  subBut.textContent = 'Register User';
+  formEl.appendChild(subBut);
 
-      formPopup.appendChild(formEl);
+  // close button
+  const closeButton = document.createElement('button');
+  closeButton.className = 'btn';
+  closeButton.textContent = 'Close';
+  closeButton.type = 'button';
+  closeButton.onclick = function() {
+    formPopup.style.display = 'none';
+    formPopup.innerHTML = ''; // clear the form when closed
+  };
 
+  // append close button to the form
+  formEl.appendChild(closeButton);
+
+  formPopup.appendChild(formEl);
+  
+  formEl.onsubmit = async function(e){
+    e.preventDefault();
+
+    const enteredUserData = new FormData(formEl);
+    const userFormData = {};
+    enteredUserData.forEach((value, key) =>{
+      userFormData[key] = value;
+    });
+    let registeredUsers = await eel.get_users()(); // get already registered users
+    pyErrorDisplay(registeredUsers); //display error if any
+    const registeredNames = registeredUsers.map(user => user[2].toLowerCase());
+    if (registeredNames.includes(userFormData.Name.toLowerCase())){
+      alert("User already registered or users got identical name. Please use another name");
+      registerUser();
+      return;
+    }else{
       let userRegistered = await eel.save_user(userFormData)();
+      pyErrorDisplay(userRegistered); //display error if any
+      alert("User registered successfully");
+      formPopup.style.display = 'none'; // dismiss form
+      formPopup.innerHTML = ''; // clear the form when closed
+      await
       allUser()
-      formEl.reset();
+      registerUser();
     };
   };
+};
 
   async function inserviceRecord(){
 
@@ -849,15 +986,18 @@ window.onload = async() => {
     btnDiv1.appendChild(returnBookBtn);
     upperBar.appendChild(btnDiv1);
 
-    const recordData = await eel.book_record()();
-    
+    // recordData e.g: [('Bonte', '3', 5, 'Male', S6 computer science', 'gsm/sc/1/20', '2025-08-25 16:37:41', '2025-09-01', 1)]
+    const recordData = await eel.book_record()(); 
+    pyErrorDisplay(recordData); //display error if any
+    // valCat is to replace category id with category name
+    const valCat = {'1':"Student", '2':"Teacher", '3':"Staff", '4':"Other"}
     // count the name occurance in service table
     const firstValueCount = {}
     for (item of recordData){
-      firstValueCount[item[0]] = (firstValueCount[item[0]] || 0) + 1;
+      firstValueCount[item[0]] = (firstValueCount[item[0]] || 0) + 1; // count the name occurrence in service table and store in obj
     };
     
-    if (recordData.length == 0 || !Object.entries(firstValueCount).some(n => n.includes(1))){
+    if (recordData.length == 0 || !Object.entries(firstValueCount).some(n => n.includes(1))){ // check if there is at least one name with one occurrence to display "no book lent yet".
       const noRecord = document.createElement('p');
       noRecord.textContent = 'No Book lent yet.';
       noRecord.className = 'no-record';
@@ -869,6 +1009,7 @@ window.onload = async() => {
       const tableHeader = document.createElement('thead');
       const headerRow = document.createElement('tr');
     
+    // create table headers
     const headers = ["Borrower's Name", 'Category', 'Book Names',"Book Identification", 'Lend Date', 'Expected Return','Return Deadline Status'];
     headers.forEach(headerText => {
       const th = document.createElement('th');
@@ -884,17 +1025,20 @@ window.onload = async() => {
     const searchData = [];
     recordData.forEach(record => {
       
-      if (firstValueCount[record[0]] == 1){
+      if (firstValueCount[record[0]] == 1){ //firstValueCount[record[0]] means the name count
         const row = document.createElement('tr');
         row.className = 'inservive-record-row';
 
         searchData.push({
-            element: row,
-            cellsData: [record[0], record[2], record[3]]
+            element: row, // the entire row element like: <tr>...</tr>
+            cellsData: [record[0], valCat[record[1]], record[4], record[5]] // [user-name, user-category, book-name, booksn]
         });
         
-        // remove user id index(2)
+        /* remove user id index(2), bookId index(6)and gender index(3) record = ['Bonte', '3', 'S6 computer science', 'gsm/sc/1/20', '2025-08-25 16:37:41', '2025-09-01']*/
         record.splice(2,1);
+        record.splice(3,1);
+        record.splice(6,1);
+        record[1] = valCat[record[1]] /* replacing category id with category name ['Bonte', 'Staff', 'S6 computer science', 'gsm/sc/1/20','2025-08-25 16:37:41', '2025-09-01']*/
 
         // create a table cell for each data in the record
         record.forEach(data => {
@@ -913,9 +1057,9 @@ window.onload = async() => {
     searchBar.placeholder = 'Search by User name, Book Name, or Book ID';
     if (searchData){
       searchBar.addEventListener('input', e =>{
-        let searchInput = e.target.value.toLowerCase();
+        let searchInput = e.target.value.toLowerCase(); // lower casing input data
         searchData.forEach(data =>{
-          let lowerRowData = data.cellsData.map(dt => dt.toLowerCase());
+          let lowerRowData = data.cellsData.map(dt => dt.toLowerCase()); // lowercasing [user-name, user-category, book-name, booksn, lend-date, return-date]
           let isVisible = !searchData || lowerRowData.some( stf => stf.includes(searchInput));
           data.element.classList.toggle('hide', !isVisible);
         });
@@ -931,14 +1075,15 @@ window.onload = async() => {
   };
 };
 
-async function specialLendForm(multipleLend){
-  await lendBook(multipleLend);
+async function specialLendForm(){
+  await lend(multipleLend=true);
 };
 
 async function specialFunctionalities(){
   const spaceSelect = document.querySelector('.book-grid');
   spaceSelect.innerHTML = ''; // clear previous content
   spaceSelect.style.display = 'grid';
+  spaceSelect.style.padding = '50px 0px 0px 13px;'
   spaceSelect.style.gridTemplateColumns = 'repeat(2, 1fr)';
 
   // upper bar
@@ -963,94 +1108,86 @@ async function specialFunctionalities(){
   specialLend.className = 'upper-bar-btn';
   specialLend.textContent = 'Special Lend';
   specialLend.onclick = async function (params) {
-    await specialLendForm(true);
+    await specialLendForm();
   };
   btnDiv2.appendChild(specialLend);
   upperBar.appendChild(btnDiv2);
 
-  // array for searsch function
-  let tbDetail = [];
-
-  // borrower table
-  const recordData = await eel.book_record()();
-  const firstValueCount = {};
-
-  // count the name occurrence in service table
-  for (item of recordData){
-    firstValueCount[item[0]] = (firstValueCount[item[0]] || 0) + 1;
-  };
-
-  if (recordData.length == 0 || ! Object.values(firstValueCount).some(n => n >= 1)){
+  // borrower table collecting in tableData
+  const recordData = await eel.book_record()();//eg:('Bonte', '3', 5,Male, 'S6 computer science', 'gsm/sc/1/20', '2025-08-25 16:37:41', '2025-09-01', 1)]
+  pyErrorDisplay(recordData); //display error if any 
+  tableData = {};
+  let valCat = {'1':"Student", '2':"Teacher", '3':"Staff", '4':"Other"}
+  recordData.forEach(([name, category, userId, gender, bookName, bookId, lendDate, returnDate]) => {
+    // collecting user borrowing details into tableData
+    const groupingKey = name + ' - ' + category;
+    if (!tableData[groupingKey]){ // each grouping key create a new obj which store books details borrowed by the same user
+      tableData[groupingKey] = {
+        name,
+        category,
+        rows: []
+      };
+    };
+    tableData[groupingKey].rows.push([bookName, bookId, lendDate, returnDate]);
+  });
+  // check if the name occurrence is more than one and display the table
+  if (Object.entries(tableData).length === 0){ 
     const noRecord = document.createElement('p');
     noRecord.textContent = 'No Book lent yet.';
     noRecord.className = 'no-record';
     spaceSelect.appendChild(noRecord);
-    return; // exit the function if no records are found
   }else{
-    // name count obj
-    let nameCount = {};
-    for ( item of recordData){
-      nameCount[item[0]] = (nameCount[item[0]]|| 0) + 1;
-    };
-
-    // collecting table data
-    tableData = {};
-    recordData.forEach(([name, category, userId, bookName, bookId, lendDate, returnDate]) => {
-      if (nameCount[name] > 1){
-        const groupingKey = name + ' - ' + category;
-        if (!tableData[groupingKey]){
-          tableData[groupingKey] = {
-            name,
-            category,
-            rows: []
-          };
-        };
-        tableData[groupingKey].rows.push([bookName, bookId, lendDate, returnDate]);
-      }  
-    });
-  };
-
-  for (const table of Object.entries(tableData)){
-    const categoryValues = {1: 'Student', 2: 'Teacher', 3: 'Staff'};
-    const tableContainer = document.createElement('div');
-    tableContainer.className = 'table-container';
-    table[1]['element'] = tableContainer;
-    const title = document.createElement('h2');
-
-    title.className = 'name-title';
-    title.textContent = table[1].name + ' (' + categoryValues[table[1].category] + ')';
-    tableContainer.appendChild(title);
-
-    // create table & header element
-    const tableEl = document.createElement('table');
-    tableEl.className = 'record-table';
-    const tableHeader = document.createElement('thead');
-    const headerRow = document.createElement('tr');
-    const allHeader = ['Book name', 'Book identification', 'Lend Date', 'Expected return']
-    allHeader.forEach(hd => {
-      const hdCell = document.createElement('th');
-      hdCell.textContent = hd;
-      headerRow.appendChild(hdCell);
-    });
-    tableHeader.appendChild(headerRow);
-    tableEl.appendChild(tableHeader);
-
-    const tableBody = document.createElement('tbody');
-
-    table[1].rows.forEach(rowData => {
-      const bodyRow = document.createElement('tr');
-      rowData.forEach(data => {
-        const dataCell = document.createElement('td');
-        dataCell.textContent = data;
-        bodyRow.appendChild(dataCell);
+    let hasMultipleLend = false;
+    for (const table of Object.entries(tableData)){
+      const categoryValues = {1: 'Student', 2: 'Teacher', 3: 'Staff'};
+      const tableContainer = document.createElement('div'); 
+      tableContainer.className = 'table-container';
+      table[1]['element'] = tableContainer; /* creating element attribute and assign it with div. I use inde [1] because object.entreis() method return list/array of lists*/
+      const title = document.createElement('h2'); // creating tittle of table like: Bonte (staff)
+  
+      title.className = 'name-title';
+      title.textContent = table[1].name + ' (' + categoryValues[table[1].category] + ')';
+      tableContainer.appendChild(title);
+  
+      // create table & header element
+      const tableEl = document.createElement('table');
+      tableEl.className = 'record-table';
+      const tableHeader = document.createElement('thead');
+      const headerRow = document.createElement('tr');
+      const allHeader = ['Book name', 'Book identification', 'Lend Date', 'Expected return']
+      allHeader.forEach(hd => {
+        const hdCell = document.createElement('th');
+        hdCell.textContent = hd;
+        headerRow.appendChild(hdCell);
       });
-      tableBody.appendChild(bodyRow);
-    });
-    tableEl.appendChild(tableBody);
-    tableContainer.appendChild(tableEl);
-    spaceSelect.appendChild(tableContainer);
-  }
+      tableHeader.appendChild(headerRow);
+      tableEl.appendChild(tableHeader);
+  
+      const tableBody = document.createElement('tbody');
 
+      if (table[1].rows.length > 1){
+        hasMultipleLend = true;
+        table[1].rows.forEach(rowData => {
+          const bodyRow = document.createElement('tr');
+          rowData.forEach(data => {
+            const dataCell = document.createElement('td');
+            dataCell.textContent = data;
+            bodyRow.appendChild(dataCell);
+          });
+          tableBody.appendChild(bodyRow);
+        });
+        tableEl.appendChild(tableBody);
+        tableContainer.appendChild(tableEl);
+        spaceSelect.appendChild(tableContainer);
+      }
+    }
+    if(! hasMultipleLend){
+      const noRecord = document.createElement('p');
+      noRecord.textContent = 'No multiple lend at the moment';
+      noRecord.className = 'no-record';
+      spaceSelect.appendChild(noRecord);
+    }
+  }
   topEl. appendChild(upperBar);
 
   // search functionality
@@ -1076,14 +1213,31 @@ async function specialFunctionalities(){
       data.element.classList.toggle('hide', ! isMatch);
     }); 
   });
-  
   tableData = {}; // reset the tableData object for the next iteration
-}
-    
-async function allUser() {
+};
+
+async function allUser() { // this method deals with user functionalities
+
+  const rowData = await eel.get_users()(); // which return e.g:[(1, '3', 'bonte', 'Male', '0785378133', 3, 'Staff'), (2, '1', 'Fiona', 'Female', '0788976787', 1, 'Student')]
+  pyErrorDisplay(rowData); //display error if any
+
+  //this block make list of borrowers ID in borrowersId for further multiple borrow check
+  let record = await eel.book_record()();
+  pyErrorDisplay(record); //display error if any
+  let borrowersId = [];
+  let borrowers = [];  /* this array intended to take in array of borrowers details as displayed like:[['bonte', 'staff', 'Male']] */
+  let valCat = {'1':"Student", '2':"Teacher", '3':"Staff", '4':"Other"};
+  for (const r of record){
+    if(! borrowersId.includes(r[2].toString())){
+      borrowersId.push(r[2].toString());
+      borrowers.push([r[0], valCat[r[1]], r[3]]); // r[0] is name, r[1] is category, r[3] is gender
+    }
+  }
+
   const spaceSelect = document.querySelector('.book-grid');
   spaceSelect.innerHTML = ''; // clear previous content
   spaceSelect.style.display = 'block';
+  spaceSelect.style.padding = '50px 0px 0px 13px;'
 
   // upper bar
   const topEl = document.querySelector('.top-bar');
@@ -1101,146 +1255,180 @@ async function allUser() {
   btnDiv2.appendChild(registerBtn);
   upperBar.appendChild(btnDiv2);
 
-  // the table element
-  const tableElement = document.createElement('table');
-  const tableHeader = document.createElement('thead');
-  const headerRow = document.createElement('tr');
-  const headers = ["","User Name", "Category", "Gender"]
-  headers.forEach(thData =>{
-    const th = document.createElement('th');
-    th.textContent = thData;
-    headerRow.appendChild(th);
-  });
-  tableHeader.appendChild(headerRow);
-  tableElement.appendChild(tableHeader);
-
-  const searchData = []
-  const tableBody = document.createElement('tbody');
-  tableBody.className = 'users';
-  const rowData = await eel.get_users_data()();
-  rowData.forEach(row =>{
-    const rowEl = document.createElement('tr');
-    const slt = document.createElement('td');
-    slt.className = 'user-check-box-cell';
-    rowEl.appendChild(slt);
-
-    searchData.push({
-      element: rowEl,
-      userDetails: [row[0],row[1]]
+  let searchData = [];
+  
+  if (! rowData.length == 0){
+    // the table element
+    const tableElement = document.createElement('table');
+    const tableHeader = document.createElement('thead');
+    const headerRow = document.createElement('tr');
+    const headers = ["","User Name", "Category", "Gender", "Phone"] // first empty string is placeholder for check box
+    headers.forEach(thData =>{
+      const th = document.createElement('th');
+      th.textContent = thData;
+      headerRow.appendChild(th);
     });
-
-    row.forEach(data =>{
-      const cell = document.createElement('td');
-      cell.textContent = data;
-      rowEl.appendChild(cell);
-    });
-
-    const deleteBtn = document.createElement('button');
-    deleteBtn.textContent = 'Delete';
-    deleteBtn.className = 'last-cell-btn';
-
-    deleteBtn.onclick = async function(params) {
-      let cellEl = rowEl.querySelectorAll('td');
-      const cellElData = Array.from(cellEl).map(cl => cl.innerText);
-      cellElData.shift(); // remove the first empty string
-      if (areIdentical(cellElData, row)){
-        const dlted = await eel.delete_user(arr=row)();
-        allUser();
-      };
-    };
-    
-    const editBtn = document.createElement('button');
-    editBtn.textContent = 'Edit';
-    editBtn.className = 'last-cell-btn';
-    
-    const currentRowData = Array.from(rowEl.children).map(td => td.innerText);
-    currentRowData.shift(); // ignore the first empty column
-    editBtn.onclick = async function (params) {
-      const editRow = rowEl.closest('tr');
-      const allCells = Array.from(editRow.querySelectorAll('td'));
-      allCells.shift();
-      const lastCellBtns = document.querySelectorAll('.last-cell-btn')
-      lastCellBtns.forEach(btn => {
-        btn.classList.toggle('hide');
+    tableHeader.appendChild(headerRow);
+    tableElement.appendChild(tableHeader);
+  
+    const tableBody = document.createElement('tbody');
+    tableBody.className = 'users';
+    rowData.forEach(row =>{
+      const rowEl = document.createElement('tr');
+      const slt = document.createElement('td');
+      slt.className = 'user-check-box-cell';
+      rowEl.appendChild(slt);
+  
+      searchData.push({
+        element: rowEl,
+        userDetails: [row[2],row[6]] // row[2] is user name, row[5] is user category
       });
-      
-      //cells edit bars
-      const nameBar = document.createElement('input');
-      nameBar.type = 'text'
-      const existedName = allCells[0].innerText;
-      nameBar.defaultValue = existedName;
-      allCells[0].textContent = null;
-      allCells[0].appendChild(nameBar);
-      
-      const categoryBar = document.createElement('select');
-      const existedCat = allCells[1].innerText;
-      const allCategories = await eel.get_categories()();
-      allCategories.forEach(([val,cat]) =>{
-        const option = document.createElement('option');
-        option.textContent = cat;
-        option.value = val;
-        option.selected = (existedCat == cat)? true: false;
-        categoryBar.appendChild(option)
+  
+      let displayData = [row[2], row[6], row[3], row[4]]; // e.g: ['bonte', 'staff', 'Male', '0785378133'] 
+      displayData.forEach(data =>{
+        const cell = document.createElement('td');
+        cell.textContent = data;
+        rowEl.appendChild(cell);
       });
-      allCells[1].textContent = null; // remove already data in cell
-      allCells[1].appendChild(categoryBar);
-      
-      const labelValue = [{label: 'F', value: 'Female'}, {label: 'M', value: 'Male'}];
-      const existedGender = allCells[2].innerText;
-      labelValue.forEach(obj =>{
-        const label = document.createElement('label');
-        label.textContent = obj.label;
-        const radio = document.createElement('input');
-        radio.type = 'radio';
-        radio.name = 'Gender';
-        radio.checked = (existedGender === obj.value) ? true: false;
-        console.log(radio.checked, allCells[2].innerText,obj.value );
-        radio.value = obj.value;
-        allCells[2].appendChild(radio);
-        allCells[2].appendChild(label);
-      });
-      
-      const submitBtn = document.createElement('button');
-      submitBtn.textContent = 'Done';
-      submitBtn.onclick = async function() {
-        let edited = {};
-        edited['Name'] = allCells[0].querySelector('input').value;
-        edited['Category'] = allCells[1].querySelector('select').value;
-        edited['Gender'] = allCells[2].querySelector('input[type="radio"]:checked').value;
-
-        let beforeEdit = {};
-        beforeEdit['Name'] = currentRowData[0];
-
-        const parseCatId = await eel.get_categories()();
-        // replace id with categoey
-        parseCatId.forEach(([val,cat]) => {
-
-          if (cat == currentRowData[1]){
-            beforeEdit['Category'] = val;
+  
+      // delete btn
+      const deleteBtn = document.createElement('button');
+      deleteBtn.textContent = 'Delete';
+      deleteBtn.className = 'last-cell-btn';
+  
+      deleteBtn.onclick = async function(params) {
+        let cellEl = rowEl.querySelectorAll('td');
+        const cellElData = Array.from(cellEl).map(cl => cl.innerText); //making an array of row element !! inner text = '["", 'bonte', 'Staff', 'Male', '0785378133']
+        cellElData.shift(); // remove the first empty string
+        
+        // this block check if user already borrowed and deny deleting if true
+        if(! borrowersId.includes(row[0].toString())){ // check if user did not borrowed. row look like (1, '3', 'bonte', 'Male', 3, 'Staff', '0785378133')
+          
+          if (areIdentical(cellElData, displayData)){
+            let userConfirm = confirm("No borrowing record found, However deleting user can not be undone. Are you sure to permanently delete this user?")
+            if (userConfirm){
+              const dlted = await eel.delete_user(arr=displayData)();
+              pyErrorDisplay(dlted); //display error if any
+              allUser();
+            }
           };
+        } else{
+          alert( row[2]+" has not returned book lent. We won't delete "+ row[2]);
+        }
+      };
+      
+      const editBtn = document.createElement('button');
+      editBtn.textContent = 'Edit';
+      editBtn.className = 'last-cell-btn';
+      
+      const currentRowData = Array.from(rowEl.children).map(td => td.innerText);
+      currentRowData.shift(); // ignore the first empty column
+      editBtn.onclick = async function (params) {
+        const editRow = rowEl.closest('tr');
+        const allCells = Array.from(editRow.querySelectorAll('td'));
+        allCells.shift();
+        const lastCellBtns = document.querySelectorAll('.last-cell-btn');
+        lastCellBtns.forEach(btn => {
+          btn.classList.toggle('hide');
+        });
+        
+        //cells edit bars
+        const nameBar = document.createElement('input');
+        nameBar.type = 'text';
+        const existedName = allCells[0].innerText;
+        nameBar.defaultValue = existedName;
+        allCells[0].textContent = null;
+        allCells[0].appendChild(nameBar);
+        
+        //category edit
+        const categoryBar = document.createElement('select');
+        const existedCat = allCells[1].innerText;
+        const allCategories = await eel.get_categories()();// allCategories e.g: [(1, 'Student'), (2, 'Teacher'), (3, 'Staff'), (4, 'Other')]
+        pyErrorDisplay(allCategories); //display error if any
+        allCategories.forEach(([val,cat]) =>{
+          const option = document.createElement('option');
+          option.textContent = cat;
+          option.value = val;
+          option.selected = (existedCat == cat)? true: false;
+          categoryBar.appendChild(option)
+        });
+        allCells[1].textContent = null; // remove before change data in cell
+        allCells[1].appendChild(categoryBar);
+        
+        const labelValue = [{label: 'F', value: 'Female'}, {label: 'M', value: 'Male'}];
+        const existedGender = allCells[2].innerText;
+        labelValue.forEach(obj =>{
+          const label = document.createElement('label');
+          label.textContent = obj.label;
+          const radio = document.createElement('input');
+          radio.type = 'radio';
+          radio.name = 'Gender';
+          radio.checked = (existedGender === obj.value) ? true: false;
+          radio.value = obj.value;
+          allCells[2].appendChild(radio);
+          allCells[2].appendChild(label);
         });
 
-        beforeEdit['Gender'] = currentRowData[2];
-        console.log(beforeEdit, edited);
-        const update = await eel.edit_user(beforeEdit, edited)();
-        allUser();
+        //phone edit
+        const phoneBar = document.createElement('input');
+        phoneBar.type = 'text';
+        const existedPhone = allCells[3].innerText;
+        phoneBar.defaultValue = existedPhone;
+        allCells[3].textContent = null;
+        allCells[3].appendChild(phoneBar);
+
+        //submit
+        const submitBtn = document.createElement('button');
+        submitBtn.textContent = 'Done';
+        submitBtn.onclick = async function() {
+          let edited = {};
+          edited['Name'] = allCells[0].querySelector('input').value;
+          edited['Category'] = allCells[1].querySelector('select').value;
+          edited['Gender'] = allCells[2].querySelector('input[type="radio"]:checked').value;
+          edited['Phone'] = allCells[3].querySelector('input').value;
+          
+          // beforeEdit obj is to collect the previous data of the user before editing
+          let beforeEdit = {};
+          beforeEdit['Name'] = currentRowData[0];
+  
+          const parseCatId = await eel.get_categories()();
+          pyErrorDisplay(parseCatId); //display error if any
+          // replace id with categoey
+          parseCatId.forEach(([val,cat]) => {
+  
+            if (cat == currentRowData[1]){
+              beforeEdit['Category'] = val;
+            };
+          });
+  
+          beforeEdit['Gender'] = currentRowData[2];
+          const update = await eel.edit_user(beforeEdit, edited)();
+          pyErrorDisplay(update); //display error if any
+          allUser();
+        };
+        
+        const closeBtn = document.createElement('button');
+        closeBtn.textContent = 'Ignore';
+        closeBtn.onclick = async function(params) {
+          allUser();
+        };
+        
+        editRow.appendChild(submitBtn);
+        editRow.appendChild(closeBtn);  
       };
       
-      const closeBtn = document.createElement('button');
-      closeBtn.textContent = 'Ignore';
-      closeBtn.onclick = async function(params) {
-        allUser();
-      };
+      rowEl.appendChild(editBtn);
+      rowEl.appendChild(deleteBtn);
       
-      editRow.appendChild(submitBtn);
-      editRow.appendChild(closeBtn);  
-    };
-    
-    rowEl.appendChild(editBtn);
-    rowEl.appendChild(deleteBtn);
-    
-    tableBody.appendChild(rowEl);
-  });
+      tableBody.appendChild(rowEl);
+      tableElement.appendChild(tableBody);
+      spaceSelect.appendChild(tableElement);
+    });
+  }else{
+    const noUser = document.createElement('p');
+    noUser.textContent = 'No user registered yet';
+    spaceSelect.appendChild(noUser);
+  }
   
   // select btn
   const btnDiv1 = document.createElement('div');
@@ -1251,10 +1439,10 @@ async function allUser() {
   selectBtn.onclick = async function(params) {
     const getButtons = document.querySelectorAll('.last-cell-btn')
 
-    getButtons.forEach(btn =>{
+    getButtons.forEach(btn =>{// hiding the button on user side
       btn.classList.toggle('hide', true);
     });
-    if (! document.getElementById('select-btn')){
+    if (! document.getElementById('select-btn')){// check if there not already ignore btn 
 
       // ignore selection btn
       const btnDiv5 = document.createElement('div');
@@ -1275,9 +1463,7 @@ async function allUser() {
       dltSelectedBtn.id = 'delete-selected-btn';
       dltSelectedBtn.textContent = 'Delete Selected';
       dltSelectedBtn.style.display = 'none';
-      const users = [];
-      const decodeCategory = {'Student': 1, 'Teacher': 2, 'Staff': 3};
-      dltSelectedBtn.onclick = async function (params) {
+      dltSelectedBtn.onclick = async function (params){
         let usersDetails = [];
         if (Array.from(selectedUser).length !== 0){
           Array.from(selectedUser).forEach(row =>{
@@ -1285,11 +1471,28 @@ async function allUser() {
             let sortedCells = Array.from(cells).slice(1); // ignore first empty string
             usersDetails.push(sortedCells.map(dt => dt.innerText));
           });
-          
-          for (const selectedUser of usersDetails){
-            await eel.delete_user(selectedUser)();
+
+          // Check if any selected user has not returned books
+          let canDelete = true;
+          for (let i = 0 ; i < usersDetails.length; i++){
+            if (borrowers.some(bw => areIdentical(bw, usersDetails[i]))){
+              alert('Some of the selected have not returned book lent. We won\'t delete them');
+              canDelete = false;
+              break;
+            }
           }
-        };
+
+          // Only ask for confirmation once
+          if (canDelete) { // the canDelete is only true if selected has no borrow record
+            let userConfirm = confirm("No borrowing record found, However deleting user(s) cannot be undone. Are you sure to permanently delete the selected users?");
+            if (userConfirm){
+              for (let i = 0 ; i < usersDetails.length; i++){
+                let dltUser = await eel.delete_user(arr=usersDetails[i])();
+                pyErrorDisplay(dltUser); //display error if any
+              }
+            }
+          }
+        }
         allUser();
       };
 
@@ -1299,7 +1502,7 @@ async function allUser() {
 
     let getTheCells = document.querySelectorAll('.user-check-box-cell');
     Array.from(getTheCells).forEach(checkCell =>{
-      if (checkCell.children.length == 0){
+      if (checkCell.children.length == 0){ // if no check box add new one
         let checkeBox = document.createElement('input');
         checkeBox.type = 'checkbox';
         checkeBox.className = 'user-check-box';
@@ -1310,7 +1513,7 @@ async function allUser() {
     const boxes = document.querySelectorAll('.user-check-box');
 
     boxes.forEach(box =>{
-      box.addEventListener('change', e =>{
+      box.addEventListener('change', e =>{ // listern to check box change
         const row = e.target.closest('tr');
         if (e.target.checked){
           selectedUser.add(row);
@@ -1339,9 +1542,6 @@ async function allUser() {
       data.element.classList.toggle('hide', ! isVisible);
     });
   });
-
-  tableElement.appendChild(tableBody);
-  spaceSelect.appendChild(tableElement);
 }
 
 async function exportDoc() {
@@ -1351,7 +1551,6 @@ async function exportDoc() {
   spaceSelect.style.flexDirection = 'column';
   spaceSelect.style.justifyContent= 'center';
   spaceSelect.style.alignItems = 'center';
-  spaceSelect.style.padding = '0';
 
   const upperBar = document.querySelector('.top-bar');
   upperBar.innerHTML= ''; // clear upper buttons
@@ -1368,11 +1567,12 @@ async function exportDoc() {
   exportPdfreport.textContent = 'Export entire PDF Report';
   spaceSelect.appendChild(exportPdfreport);
   exportPdfreport.onclick = async function() {
-    const hideLayout = document.querySelector('.layout')
-    hideLayout.style.display = 'none';
-    let reportDestination = await eel.report_path()();
-    hideLayout.style.display = 'block';
-    await eel.generate_pdf('Whole Report', reportDestination)();
+    showOverlay();
+    let reportDestination = await eel.report_path()(); // this call tkinter file dialog to get the path from user
+    pyErrorDisplay(reportDestination); //display error if any
+    hideOverlay();
+    let wholeReport = await eel.generate_pdf('Whole Report', reportDestination)();
+    pyErrorDisplay(wholeReport); //display error if any
   }
 
   // book status report button
@@ -1381,11 +1581,12 @@ async function exportDoc() {
   exportPdfStatus.textContent = 'Export Book Status Report';
   spaceSelect.appendChild(exportPdfStatus);
   exportPdfStatus.onclick = async function() {
-    const hideLayout = document.querySelector('.layout')
-    hideLayout.style.display = 'none';
+    showOverlay();
     let reportDestination = await eel.report_path()();
-    hideLayout.style.display = 'block';
-    await eel.generate_pdf('table books status', reportDestination)();
+    pyErrorDisplay(reportDestination); //display error if any
+    hideOverlay();
+    let statusReport = await eel.generate_pdf('table books status', reportDestination)();
+    pyErrorDisplay(statusReport); //display error if any
   };
 
   // borrower report button
@@ -1394,11 +1595,11 @@ async function exportDoc() {
   exportPdfBorrower.textContent = 'Export Borrower Report';
   spaceSelect.appendChild(exportPdfBorrower);
   exportPdfBorrower.onclick = async function() {
-    const hideLayout = document.querySelector('.layout')
-    hideLayout.style.display = 'none';
+    showOverlay();
     let reportDestination = await eel.report_path()();
-    hideLayout.style.display = 'block';
-    await eel.generate_pdf('table borrowers', reportDestination)();
+    pyErrorDisplay(reportDestination); //display error if any
+    hideOverlay();
+    let borrowerReport = await eel.generate_pdf('table borrowers', reportDestination)();
+    pyErrorDisplay(borrowerReport); //display error if any
   };
-
 };

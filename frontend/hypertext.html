@@ -16,7 +16,6 @@
         <label id="search-label" for="search-bar">Search </label>
         <input type="text" id="search-bar">
       </div>
-      
     </div>
   </header>
   <div class="layout">
@@ -28,6 +27,11 @@
       <button onclick="exportDoc()"><div>Report</div></button>
     </nav>
     <main>
+      <div id="overlayLoader">
+        <div class="loader"></div>
+        <p>Processing... Please wait</p>
+      </div>
+
       <div class="top-bar"></div>
       <div class="book-grid">
       </div>

@@ -34,13 +34,15 @@ cur.execute("CREATE TABLE IF NOT EXISTS Category(" \
 cur.execute("INSERT OR IGNORE INTO Category(Name) VALUES('Student')")
 cur.execute("INSERT OR IGNORE INTO Category(Name) VALUES('Teacher')")
 cur.execute("INSERT OR IGNORE INTO Category(Name) VALUES('Staff')")
+cur.execute("INSERT OR IGNORE INTO Category(Name) VALUES('Other')")
 
 # table users
 cur.execute("CREATE TABLE IF NOT EXISTS User(" \
 "Id INTEGER PRIMARY KEY AUTOINCREMENT," \
 "Category VARCHAR(50)," \
-"Name VARCHAR(50) NOT NULL," \
+"Name VARCHAR(50) UNIQUE NOT NULL," \
 "Gender VARCHAR(50)," \
+"Phone VARCHAR(15) UNIQUE," \
 "FOREIGN KEY(Category) REFERENCES Category(Id) ON DELETE CASCADE)") 
 
 # service table
@@ -96,6 +98,7 @@ class Tables:
             query += f" WHERE {where}"
         if groupby:
             query += f" GROUP BY {groupby}"
+
     self.cur.execute(query)
 
     return self.cur.fetchall()
