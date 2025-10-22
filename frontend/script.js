@@ -1,7 +1,6 @@
+eel.expose(pyErrorDisplay);
 async function pyErrorDisplay(result) {
-  if(typeof result === 'string' && result.startsWith('Error:')){
-    alert(result);
-  }
+ alert(result)
 }
 
 function areIdentical(arr1, arr2){
@@ -21,11 +20,9 @@ async function lend(multipleLend) {
   const formEl = document.createElement('form');
   
   const statusData = await eel.status()();
-  pyErrorDisplay(statusData); //display error if any
 
   // collect already borrowers in array
     let borrowersRecords = await eel.book_record()(); //e.g:[('Bonte', '3', 5,"Male", 'S6 computer science', 'gsm/sc/1/20', '2025-08-25 16:37:41', '2025-09-01', 1)]
-    pyErrorDisplay(borrowersRecords); //display error if any
 
     let borrowers = [];
     let booksBorrowed = []
@@ -109,7 +106,6 @@ async function lend(multipleLend) {
   
   // loop through userData to create options
   const userData = await eel.get_users()(); //e.g:[(1, '3', 'bonte', 'Male', 3, 'Staff'), (2, '1', 'Fiona', 'Female', 1, 'Student')]
-  pyErrorDisplay(userData); //display error if any
   if (userData){
     userData.forEach(user => {
     
@@ -177,7 +173,6 @@ async function lend(multipleLend) {
 
     if (multipleLend){ // on multiple lend, lend regardless of previous borrow
       let updateDatabase = await eel.save_lend(lendFormData)();
-      pyErrorDisplay(updateDatabase); //display error if any
       alert("Book lent successfully");
       specialLendForm();
       formEl.reset();
@@ -189,7 +184,6 @@ async function lend(multipleLend) {
         formEl.reset();
       }else{
         let updateDatabase = await eel.save_lend(lendFormData)();
-        pyErrorDisplay(updateDatabase); //display error if any
         alert("Book lent successfully");
         currentStatus();
         lend();
@@ -197,17 +191,30 @@ async function lend(multipleLend) {
     }
   }
 }
-
-function showOverlay() {
+eel.expose(showOverlay);
+function showOverlay(msg) {
   document.getElementById("overlayLoader").style.display = "flex";
+  let p = document.getElementById("overlayText");
+  if (msg){
+    p.textContent = msg;
+  }else{
+    p.textContent = "Loading...";
+  }
 }
 
+eel.expose(hideOverlay);
 function hideOverlay() {
   document.getElementById("overlayLoader").style.display = "none";
 }
 
+if (window){
+  window.showOverlay = showOverlay;
+  window.hideOverlay = hideOverlay;
+}
+
 window.onload = async() => {
   currentStatus();  
+  await eel.check_for_updates()();
 };
 
   async function currentStatus(){
@@ -219,7 +226,6 @@ window.onload = async() => {
     in-service book: ....
     */
    let statusData = await eel.status()();
-   pyErrorDisplay(statusData); //display error if any
 
     // upper bar
     const topEl = document.querySelector('.top-bar');
@@ -429,10 +435,8 @@ window.onload = async() => {
                 
                 base64 = e.target.result; //get bs4 data(image)
                 let imgPath = await eel.upload_img(base64, imgBar.files[0].name, theName)(); //send into py
-                pyErrorDisplay(imgPath); // display error if any
                 showOverlay();
                 let update = await eel.update_book(theName, imgPath)();
-                pyErrorDisplay(update); // display error if any
                 hideOverlay();
                 await currentStatus();
                 formPopup.style.display = 'none';
@@ -448,7 +452,6 @@ window.onload = async() => {
           
           // take in lent books in inServiceBooks
           let record = await eel.book_record()(); //e.g:[('Bonte', '3', 5, "Male", 'S6 computer science', 'gsm/sc/1/20', '2025-08-25 16:37:41', '2025-09-01', 1)]
-          pyErrorDisplay(record); //display error if any
           let inServiceBooks = [];
           record.forEach(data =>{
             if (!inServiceBooks.includes(data[4])){
@@ -464,10 +467,8 @@ window.onload = async() => {
               if (acknowledge){
                 showOverlay();
                 let msg = await eel.remove_book(theName)();
-                pyErrorDisplay(msg); // display error if any
                 hideOverlay();
                 reload = await currentStatus();
-                pyErrorDisplay(reload); // display error if any
                 formPopup.style.display = 'none';
                 alert(msg);
               }
@@ -675,10 +676,8 @@ window.onload = async() => {
           
           base64 = e.target.result; //get bs4 data(image)
           let path = await eel.upload_img(base64, imgFile.name, formData['Name'])(); //send into py
-          pyErrorDisplay(path); // display error if any
           formData['Cover'] = path;
           let sv = await eel.save_data(formData)();
-          pyErrorDisplay(sv); // display error if any
           await currentStatus();
           form.reset();
         }
@@ -687,7 +686,6 @@ window.onload = async() => {
         let defaultpath = await eel.upload_img(null, null, formData['Name'])(); // use already obtained cover
         formData['Cover'] = defaultpath;
         let sv = await eel.save_data(formData)();
-        pyErrorDisplay(sv); // display error if any
         await currentStatus();
         form.reset();
       };
@@ -738,7 +736,6 @@ window.onload = async() => {
 
     // get the list of lent books details
     record = await eel.book_record()(); // e.g:[('Bonte', '3', 5, 'Male', 'S6 computer science', 'gsm/sc/1/20', '2025-08-25 16:37:41', '2025-09-01', 1)]
-    pyErrorDisplay(record); //display error if any
     const lentBooksDetails = [];
     for (const i of record){
       lentBooksDetails.push([i[5], i[4], i[8]]) // [book sn, book name, book id] 
@@ -822,7 +819,6 @@ window.onload = async() => {
         returnFormData[key] = value;
       });
       let returnedBook = await eel.save_return(returnFormData)();
-      pyErrorDisplay(returnedBook); //display error if any
       alert("Book returned successfully");
       formPopup.style.display = 'none'; // dismiss form
       formPopup.innerHTML = ''; // clear the form when closed
@@ -944,7 +940,6 @@ function registerUser(){
       userFormData[key] = value;
     });
     let registeredUsers = await eel.get_users()(); // get already registered users
-    pyErrorDisplay(registeredUsers); //display error if any
     const registeredNames = registeredUsers.map(user => user[2].toLowerCase());
     if (registeredNames.includes(userFormData.Name.toLowerCase())){
       alert("User already registered or users got identical name. Please use another name");
@@ -952,7 +947,6 @@ function registerUser(){
       return;
     }else{
       let userRegistered = await eel.save_user(userFormData)();
-      pyErrorDisplay(userRegistered); //display error if any
       alert("User registered successfully");
       formPopup.style.display = 'none'; // dismiss form
       formPopup.innerHTML = ''; // clear the form when closed
@@ -988,7 +982,7 @@ function registerUser(){
 
     // recordData e.g: [('Bonte', '3', 5, 'Male', S6 computer science', 'gsm/sc/1/20', '2025-08-25 16:37:41', '2025-09-01', 1)]
     const recordData = await eel.book_record()(); 
-    pyErrorDisplay(recordData); //display error if any
+  
     // valCat is to replace category id with category name
     const valCat = {'1':"Student", '2':"Teacher", '3':"Staff", '4':"Other"}
     // count the name occurance in service table
@@ -1115,7 +1109,7 @@ async function specialFunctionalities(){
 
   // borrower table collecting in tableData
   const recordData = await eel.book_record()();//eg:('Bonte', '3', 5,Male, 'S6 computer science', 'gsm/sc/1/20', '2025-08-25 16:37:41', '2025-09-01', 1)]
-  pyErrorDisplay(recordData); //display error if any 
+
   tableData = {};
   let valCat = {'1':"Student", '2':"Teacher", '3':"Staff", '4':"Other"}
   recordData.forEach(([name, category, userId, gender, bookName, bookId, lendDate, returnDate]) => {
@@ -1219,11 +1213,9 @@ async function specialFunctionalities(){
 async function allUser() { // this method deals with user functionalities
 
   const rowData = await eel.get_users()(); // which return e.g:[(1, '3', 'bonte', 'Male', '0785378133', 3, 'Staff'), (2, '1', 'Fiona', 'Female', '0788976787', 1, 'Student')]
-  pyErrorDisplay(rowData); //display error if any
 
   //this block make list of borrowers ID in borrowersId for further multiple borrow check
   let record = await eel.book_record()();
-  pyErrorDisplay(record); //display error if any
   let borrowersId = [];
   let borrowers = [];  /* this array intended to take in array of borrowers details as displayed like:[['bonte', 'staff', 'Male']] */
   let valCat = {'1':"Student", '2':"Teacher", '3':"Staff", '4':"Other"};
@@ -1308,7 +1300,6 @@ async function allUser() { // this method deals with user functionalities
             let userConfirm = confirm("No borrowing record found, However deleting user can not be undone. Are you sure to permanently delete this user?")
             if (userConfirm){
               const dlted = await eel.delete_user(arr=displayData)();
-              pyErrorDisplay(dlted); //display error if any
               allUser();
             }
           };
@@ -1344,7 +1335,6 @@ async function allUser() { // this method deals with user functionalities
         const categoryBar = document.createElement('select');
         const existedCat = allCells[1].innerText;
         const allCategories = await eel.get_categories()();// allCategories e.g: [(1, 'Student'), (2, 'Teacher'), (3, 'Staff'), (4, 'Other')]
-        pyErrorDisplay(allCategories); //display error if any
         allCategories.forEach(([val,cat]) =>{
           const option = document.createElement('option');
           option.textContent = cat;
@@ -1392,7 +1382,6 @@ async function allUser() { // this method deals with user functionalities
           beforeEdit['Name'] = currentRowData[0];
   
           const parseCatId = await eel.get_categories()();
-          pyErrorDisplay(parseCatId); //display error if any
           // replace id with categoey
           parseCatId.forEach(([val,cat]) => {
   
@@ -1403,7 +1392,6 @@ async function allUser() { // this method deals with user functionalities
   
           beforeEdit['Gender'] = currentRowData[2];
           const update = await eel.edit_user(beforeEdit, edited)();
-          pyErrorDisplay(update); //display error if any
           allUser();
         };
         
@@ -1488,7 +1476,6 @@ async function allUser() { // this method deals with user functionalities
             if (userConfirm){
               for (let i = 0 ; i < usersDetails.length; i++){
                 let dltUser = await eel.delete_user(arr=usersDetails[i])();
-                pyErrorDisplay(dltUser); //display error if any
               }
             }
           }
@@ -1569,10 +1556,13 @@ async function exportDoc() {
   exportPdfreport.onclick = async function() {
     showOverlay();
     let reportDestination = await eel.report_path()(); // this call tkinter file dialog to get the path from user
-    pyErrorDisplay(reportDestination); //display error if any
     hideOverlay();
-    let wholeReport = await eel.generate_pdf('Whole Report', reportDestination)();
-    pyErrorDisplay(wholeReport); //display error if any
+    if (reportDestination != null){
+      let wholeReport = await eel.generate_pdf('Whole Report', reportDestination)();
+      pyErrorDisplay(wholeReport); //display 
+    }else{
+      return;
+    }
   }
 
   // book status report button
@@ -1583,10 +1573,11 @@ async function exportDoc() {
   exportPdfStatus.onclick = async function() {
     showOverlay();
     let reportDestination = await eel.report_path()();
-    pyErrorDisplay(reportDestination); //display error if any
     hideOverlay();
-    let statusReport = await eel.generate_pdf('table books status', reportDestination)();
-    pyErrorDisplay(statusReport); //display error if any
+    if (reportDestination != null){
+      let statusReport = await eel.generate_pdf('table books status', reportDestination)();
+      pyErrorDisplay(statusReport); //display
+    }
   };
 
   // borrower report button
@@ -1597,9 +1588,10 @@ async function exportDoc() {
   exportPdfBorrower.onclick = async function() {
     showOverlay();
     let reportDestination = await eel.report_path()();
-    pyErrorDisplay(reportDestination); //display error if any
     hideOverlay();
-    let borrowerReport = await eel.generate_pdf('table borrowers', reportDestination)();
-    pyErrorDisplay(borrowerReport); //display error if any
+    if (reportDestination != null){
+      let borrowerReport = await eel.generate_pdf('table borrowers', reportDestination)();
+      pyErrorDisplay(borrowerReport); //display 
+    }
   };
 };

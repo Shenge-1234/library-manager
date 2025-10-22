@@ -1,7 +1,19 @@
-import sqlite3
+import sqlcipher3 as sqlite3
+import os
 
-connection = sqlite3.connect("libman-db.db") # initiate db
+# ensure app data directory exists(putting database in app data folder)
+app_data_dir = os.path.join(os.getenv("APPDATA"), "Library Management")
+os.makedirs(app_data_dir, exist_ok=True)
+
+# the db path
+db_path = os.path.join(app_data_dir, "libman-db.db")
+
+# connect to the database path
+connection = sqlite3.connect(db_path) # initiate db
 cur = connection.cursor() # make cursor to assign db code
+
+# enabling encryption
+cur.execute("PRAGMA key = 'libman@123'")
 
 # table genre
 cur.execute("CREATE TABLE IF NOT EXISTS Genre(" \
@@ -64,14 +76,15 @@ connection.close()
 class Tables:
   def __init__(self, table_name):
     self.table = table_name
-    self.connection = sqlite3.connect("libman-db.db")
+    self.connection = sqlite3.connect(db_path)
     self.connection.execute("PRAGMA foreign_keys = ON")
     self.cur = self.connection.cursor()
 
   def create(self,**kwargs):
     keys = ", ".join(kwargs.keys())
     placeholder = ", ".join(['?'] * len(kwargs))
-    values = tuple(kwargs.values())  
+    values = tuple(kwargs.values())
+    self.cur.execute("PRAGMA Key ='libman@123'")
     self.cur.execute(f"INSERT INTO {self.table} ({keys}) VALUES ({placeholder})", values )
     self.connection.commit()
   
@@ -99,6 +112,7 @@ class Tables:
         if groupby:
             query += f" GROUP BY {groupby}"
 
+    self.cur.execute("PRAGMA Key ='libman@123'")
     self.cur.execute(query)
 
     return self.cur.fetchall()
@@ -107,12 +121,14 @@ class Tables:
     set_clause = ", ".join(f'{k}= ?' for k in new_values)
     where_clause = " AND ".join(f'{k}= ?' for k in where)
     values = tuple(new_values.values()) + tuple(where.values())
+    self.cur.execute("PRAGMA Key='libman@123'")
     self.cur.execute(f"UPDATE {self.table} SET {set_clause} WHERE {where_clause}", values)
     self.connection.commit()
 
   def delete(self, **kwargs):
     ref = " AND ".join(f'{k}= ?' for k in kwargs)
     values = tuple(kwargs.values())
+    self.cur.execute("PRAGMA Key ='libman@123'")
     self.cur.execute(f"DELETE FROM {self.table} WHERE {ref}", values)
     self.connection.commit()
 
@@ -123,6 +139,7 @@ class Tables:
      # This method Return True if a matching record exists, otherwise False
      where_clause = ", ".join(f"{k}= ?" for k in kwarg.keys())
      values = tuple(kwarg.values())
+     self.cur.execute("PRAGMA Key ='libman@123'")
      self.cur.execute(f"SELECT EXISTS(SELECT 1 FROM {self.table} WHERE {where_clause})", values)
      self.connection.commit()
      result = self.cur.fetchone()[0]

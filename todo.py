@@ -6,9 +6,11 @@ from fpdf import FPDF
 import tkinter
 from tkinter import filedialog
 import requests
-import shutil
 import sys
 import datetime
+import subprocess
+import time
+import threading
 
 eel.init("frontend")
 
@@ -189,14 +191,22 @@ def upload_img(base64_str, img_name, book_name):
 @eel.expose
 def report_path():
   try:
+    # favicon path
+    icon_path = os.path.join(os.path.dirname(__file__), "frontend", "media", "lib icon.ico")
     root = tkinter.Tk()
-    root.withdraw()
+    root.withdraw() # hide the main window
     root.attributes('-topmost', True)
+    root.iconbitmap(icon_path)
     file_path = filedialog.askdirectory(title="Choose folder to Save Report", parent=root)
     root.destroy()
-    return file_path
+    if not file_path:
+
+      return None
+    else:
+      
+      return file_path
   except Exception as e:
-    return f"Error selecting report path: {e}"
+    print( f"Error selecting report path: {e}")
 
 # make a pdf report
 @eel.expose
@@ -218,7 +228,6 @@ def generate_pdf(query_table:str = None, directory: str = None):
             l[1] = val_cat[l[1]]
         except KeyError:
             pass
-        print(tuple(l))
         bor_dt.append(tuple(l))
       data["borrowe_data"] = bor_dt
 
@@ -319,57 +328,77 @@ def update_book(nameOfBook, new_cover_path):
   except Exception as e:
     return f"Error updating book cover: {e}"
 
+@eel.expose
 def check_for_updates():
-  version_url = "https://github.com/Shenge-1234/library-manager/raw/refs/heads/main/latest_version"
-  try:
-    response = requests.get(version_url)
-    if response.status_code == 200:
-      latest_version = response.text.strip()
-      with open("version", "r") as file:
-        current_version = file.read().strip()
-      if latest_version > current_version:
-        return {"latest": latest_version, "current": current_version, "update": True, 'msg': "Update available"}
-      else:
-        return {"update": False, "msg": "no update availble"}
-    else:
-      return {"msg": "Failed to check for updates. Status code: {}".format(response.status_code),"update": False}
-  except NameResolutionError:
-    pass
-  except Exception as e:
-    print({"msg": f"An error occurred: {e}", "update": False})
 
-def update():
-  update_files_url = "https://github.com/Shenge-1234/library-manager/archive/refs/heads/main.zip"
+  eel.showOverlay("Checking for updates...")
+
+  release_api_url = "https://api.github.com/repos/Shenge-1234/library-manager/releases"
   try:
-    response = requests.get(update_files_url)
+    response = requests.get(release_api_url)
     if response.status_code == 200:
-      with open("update.zip", "wb") as file:
-        file.write(response.content)
-      shutil.unpack_archive(filename = "update.zip", extract_dir="update_temp", format="zip")
-      update_files_lst = [fl for fl in os.listdir("update_temp") if not fl.endswith(".db")]
-      for update in update_files_lst:
-        new = os.path.join("update_temp", update)
-        old = os.path.join(".", update) 
-        if os.path.isdir(new):
-          if os.path.exists(old):
-            shutil.rmtree(old)
-        else:
-          shutil.copy2(src=new, dst=old)
-        os.remove("update.zip")
-        shutil.rmtree("update_temp")
-        os.execv(sys.executable, ["python"] + sys.argv)
+
+      # parse api with json
+      api_data = response.json()
+      latest_version = api_data[0]["tag_name"]
+      current_version = "v1.0.0"
+      eel.hideOverlay()
+
+      if latest_version > current_version:
+
+        eel.showOverlay("Apdates available. Downloading...")
+
+        latest_app_url = api_data["assets"][-1]["browser_download_url"]
+        response = requests.get(latest_app_url)
+
+        # extracting current path
+        exe_path = sys.executable
+        current_dir = os.path.dirname(exe_path) # parent directory
+        exe_name = os.path.basename(exe_path) # exe name
+        
+        temp_name = "Library Manager New.exe" # name of dowload
+        temp_path = os.path.join(current_dir, temp_name)
+
+        if response.status_code == 200:
+          with open(temp_path, "wb") as file:
+            for chunk in response.iter_content(chunk_size=8192):
+              file.write(chunk)
+            
+        # creating batch file
+        batch_path = os.path.join(current_dir, 'updater.bat')
+        batch_cnt = f"""@echo off
+cd /d "%~dp0"
+timeout /t 2 /nobreak >nul
+taskkill /IM "{exe_name}" /F >nul 2>&1
+:waitloop
+if exist "{exe_name}" (
+  del /F /Q "{exe_name}" >nul 2>&1
+  if exist "{exe_name}" goto waitloop
+)
+move /Y "%~dp0{temp_name}" "%~dp0{exe_name}" >nul 2>&1
+start "" "%~dp0{exe_name}"
+del "%~f0"
+"""
+        with open(batch_path, 'w', encoding="utf-8") as f:
+          f.write(batch_cnt)
+
+        # running the batch
+        subprocess.Popen(["cmd", "/c", "start", "", batch_path], shell=False)
+        sys.exit(0) # giving batch time to run and exit
+        eel.hideOverlay()
+      else:
+        eel.showoverlay("No updates available.")
+        time.sleep(2)
+        eel.hideOverlay()
     else:
-      return "Failed to download update files. Status code: {}".format(response.status_code)
+      eel.pyErrorDisplay("Failed to check for updates. Status code: {}".format(response.status_code))
   except Exception as e:
-    print(f"An error occurred while updating: {e}")
+    eel.pyErrorDisplay(f"An error occurred while checking for updates: {e}")
 
 def main():
   try:
-    check = check_for_updates()
-    if check.get("update"):
-        update()
-    else:
-        eel.start("hypertext.html")
+    threading.Thread(target=check_for_updates, daemon=True).start()
+    eel.start("hypertext.html", block=True)
   except Exception as e:
     print("Error occured: ", e)
 
